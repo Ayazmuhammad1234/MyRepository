@@ -1,57 +1,108 @@
-WITH preprocessed_data AS (
-    SELECT
-        USE_CASE_NO,
-        USE_CASE_OWNERSHIP,
-        USE_CASE_OWNER,
-        USE_CASE_ACCOUNTABLE_EXECUTIVE,
-        USE_CASE_CATEGORY,
-        PROJECT_OVERALL_RAG_STATUS,
-        SMT_ACCOUNTABLE_EXECUTIVE,
-        DELIVERABLE_OWNER,
-        PROGRAM_NAME,
-        OCC_CONSENT_ORDER_ARTICLE,
-        SUBPORTFOLIO_NAME,
-        RAG_STATUS,
-        DUE_DATE,
-        DERIVED_PROGRAM_CATEGORY,
-        WORK_EFFORT_NAME,
-        INITIATIVE_NAME,
-        MILESTONE_ID,
-        CO_TYPE
-    FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW
-    WHERE USE_CASE_NO IS NOT NULL
-      AND PROJECT_OVERALL_RAG_STATUS <> 'NA'
-      AND RAG_STATUS <> 'NA'
-)
+@RestController
+@RequestMapping("/api/pts")
+@RequiredArgsConstructor
+public class PtsDashboardController {
 
-SELECT DISTINCT
-    MS.USE_CASE_NO,
-    MS.USE_CASE_OWNERSHIP,
-    MS.USE_CASE_OWNER,
-    MS.USE_CASE_ACCOUNTABLE_EXECUTIVE,
-    MS.USE_CASE_CATEGORY,
-    MS.PROJECT_OVERALL_RAG_STATUS,
+    private final PtsDashboardService ptsDashboardService;
 
-    UCDate.USE_CASE_DUE_DT_YEAR,
-    UCDate.USE_CASE_DUE_DT_QTR,
-    UCDate.USE_CASE_DUE_DT_MONTH,
+    /**
+     * ===============================
+     * MAIN PTS DASHBOARD (TABLE DATA)
+     * ===============================
+     */
+    @GetMapping("/dashboard")
+    public List<PtsDashboardDto> getDashboardData(
+            @RequestParam(required = false) String useCaseNo,
+            @RequestParam(required = false) String useCaseOwnership,
+            @RequestParam(required = false) String useCaseOwner,
+            @RequestParam(required = false) String useCaseAccountableExecutive,
+            @RequestParam(required = false) String useCaseRbcmType,
+            @RequestParam(required = false) String useCaseRagStatus,
 
-    MS.SMT_ACCOUNTABLE_EXECUTIVE,
-    MS.MILESTONE_OWNER,
-    Del.DELIVERABLE_OWNER,
+            @RequestParam(required = false) String owner,
+            @RequestParam(required = false) String accountableExecutive,
+            @RequestParam(required = false) Integer rev,
+            @RequestParam(required = false) String milestoneOwner,
+            @RequestParam(required = false) String deliverableOwner,
 
-    MS.MILESTONE_YEAR,
-    MS.MILESTONE_QTR,
-    MS.MILESTONE_MONTH,
-    Del.DELIVERABLE_YEAR,
-    Del.DELIVERABLE_QTR,
-    Del.DELIVERABLE_MONTH,
+            @RequestParam(required = false) String initiative,
+            @RequestParam(required = false) String program,
+            @RequestParam(required = false) String project,
+            @RequestParam(required = false) String programCategory,
+            @RequestParam(required = false) String article,
+            @RequestParam(required = false) String subPortfolio,
 
-    Del.INITIATIVE_NAME,
-    MS.PROGRAM_NAME,
-    Del.WORK_EFFORT_NAME,
-    Del.DERIVED_PROGRAM_CATEGORY,
+            @RequestParam(required = false) String milestoneRag,
+            @RequestParam(required = false) String deliverableRag,
 
+            // -------- DATE OPTIONS (MANDATORY) --------
+            @RequestParam String dateType, // BUSINESS / BASELINE
+            @RequestParam LocalDate fromDate,
+            @RequestParam LocalDate toDate
+    ) {
+        return ptsDashboardService.getDashboardData(
+                useCaseNo, useCaseOwnership, useCaseOwner,
+                useCaseAccountableExecutive, useCaseRbcmType, useCaseRagStatus,
+                owner, accountableExecutive, rev,
+                milestoneOwner, deliverableOwner,
+                initiative, program, project, programCategory,
+                article, subPortfolio,
+                milestoneRag, deliverableRag,
+                dateType, fromDate, toDate
+        );
+    }
+
+    /**
+     * ===============================
+     * TOP CARD 1 – PROJECT OVERALL RAG
+     * ===============================
+     */
+    @GetMapping("/top-card/project-rag")
+    public List<TopCardProjectRagDto> getTopCardProjectRag(
+            @RequestParam String dateType,
+            @RequestParam LocalDate fromDate,
+            @RequestParam LocalDate toDate,
+
+            @RequestParam(required = false) String useCaseOwnership,
+            @RequestParam(required = false) String milestoneRag,
+            @RequestParam(required = false) String deliverableRag
+    ) {
+        return ptsDashboardService.getTopCardProjectRag(
+                dateType, fromDate, toDate,
+                useCaseOwnership, milestoneRag, deliverableRag
+        );
+    }
+
+    /**
+     * =========================================
+     * TOP CARD 2 – OWNERSHIP vs USE CASE CATEGORY
+     * =========================================
+     */
+    @GetMapping("/top-card/ownership-category")
+    public List<TopCardOwnershipCategoryDto> getTopCardOwnershipCategory(
+            @RequestParam String dateType,
+            @RequestParam LocalDate fromDate,
+            @RequestParam LocalDate toDate,
+
+            @RequestParam(required = false) String useCaseOwnership,
+            @RequestParam(required = false) String useCaseCategory
+    ) {
+        return ptsDashboardService.getTopCardOwnershipCategory(
+                dateType, fromDate, toDate,
+                useCaseOwnership, useCaseCategory
+        );
+    }
+
+    /**
+     * ===============================
+     * FILTER DROPDOWNS (LANDING)
+     * ===============================
+     */
+    @GetMapping("/filters")
+    public PtsFilterResponse getFilterDropdowns() {
+        return ptsDashboardService.getAllFilters();
+    }
+}
     MS.OCC_CONSENT_ORDER_ARTICLE,
     MS.SUBPORTFOLIO_NAME,
     MS.MILESTONE_RAG_STATUS,
