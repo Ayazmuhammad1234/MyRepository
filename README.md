@@ -104,3 +104,127 @@ public class PtsDashboardController {
         return ptsDashboardService.getAllFilters();
     }
 }
+
+
+
+
+public final class GlobalFilterBuilder {
+
+    private GlobalFilterBuilder() {}
+
+    public static String build(Map<String, Object> params) {
+
+        StringBuilder sql = new StringBuilder();
+
+        /* =======================
+           1. USE CASE FILTERS
+        ======================== */
+
+        if (params.containsKey("useCaseNo")) {
+            sql.append(" AND USE_CASE_NO = :useCaseNo");
+        }
+
+        if (params.containsKey("useCaseOwnership")) {
+            sql.append(" AND USE_CASE_OWNERSHIP = :useCaseOwnership");
+        }
+
+        if (params.containsKey("useCaseOwner")) {
+            sql.append(" AND USE_CASE_OWNER = :useCaseOwner");
+        }
+
+        if (params.containsKey("useCaseAccountableExec")) {
+            sql.append(" AND USE_CASE_ACCOUNTABLE_EXECUTIVE = :useCaseAccountableExec");
+        }
+
+        if (params.containsKey("useCaseRbcmType")) {
+            sql.append(" AND CO_TYPE = :useCaseRbcmType");
+        }
+
+        if (params.containsKey("useCaseRagStatus")) {
+            sql.append(" AND PROJECT_OVERALL_RAG_STATUS IN (:useCaseRagStatus)");
+            params.put("useCaseRagStatus", split(params.get("useCaseRagStatus")));
+        }
+
+        /* =======================
+           2. OWNER FILTERS
+        ======================== */
+
+        if (params.containsKey("accountableExecutive")) {
+            sql.append(" AND SMT_ACCOUNTABLE_EXECUTIVE = :accountableExecutive");
+        }
+
+        if (params.containsKey("milestoneOwner")) {
+            sql.append(" AND CO_TYPE = 'CO Milestone'");
+            sql.append(" AND DELIVERABLE_OWNER = :milestoneOwner");
+        }
+
+        if (params.containsKey("deliverableOwner")) {
+            sql.append(" AND CO_TYPE = 'CO Deliverable'");
+            sql.append(" AND DELIVERABLE_OWNER = :deliverableOwner");
+        }
+
+        /* =======================
+           3. TIMELINE FILTERS
+        ======================== */
+
+        if (params.containsKey("timelineType")) {
+            sql.append(" AND CO_TYPE = :timelineType");
+        }
+
+        /* =======================
+           4. WORK EFFORT FILTERS
+        ======================== */
+
+        if (params.containsKey("initiative")) {
+            sql.append(" AND INITIATIVE_NAME = :initiative");
+        }
+
+        if (params.containsKey("program")) {
+            sql.append(" AND PROGRAM_NAME = :program");
+        }
+
+        if (params.containsKey("project")) {
+            sql.append(" AND WORK_EFFORT_NAME = :project");
+        }
+
+        if (params.containsKey("programCategory")) {
+            sql.append(" AND DERIVED_PROGRAM_CATEGORY = :programCategory");
+        }
+
+        /* =======================
+           5. MILESTONE ATTRIBUTES
+        ======================== */
+
+        if (params.containsKey("article")) {
+            sql.append(" AND OCC_CONSENT_ORDER_ARTICLE = :article");
+        }
+
+        if (params.containsKey("subPortfolio")) {
+            sql.append(" AND SUBPORTFOLIO_NAME = :subPortfolio");
+        }
+
+        /* =======================
+           6. RAG STATUS FILTERS
+        ======================== */
+
+        if (params.containsKey("milestoneRag")) {
+            sql.append(" AND CO_TYPE = 'CO Milestone'");
+            sql.append(" AND RAG_STATUS IN (:milestoneRag)");
+            params.put("milestoneRag", split(params.get("milestoneRag")));
+        }
+
+        if (params.containsKey("deliverableRag")) {
+            sql.append(" AND CO_TYPE = 'CO Deliverable'");
+            sql.append(" AND RAG_STATUS IN (:deliverableRag)");
+            params.put("deliverableRag", split(params.get("deliverableRag")));
+        }
+
+        return sql.toString();
+    }
+
+    private static List<String> split(Object value) {
+        return Arrays.stream(value.toString().split(","))
+                .map(String::trim)
+                .toList();
+    }
+}
