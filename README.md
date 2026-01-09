@@ -367,5 +367,112 @@ public class GlobalFilterBuilder {
 
 
 
+// new repo
 
+
+
+package com.yourcompany.pts.repository;
+
+import com.yourcompany.pts.dto.GlobalFilterRequest;
+import com.yourcompany.pts.util.GlobalFilterBuilder;
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Repository
+@RequiredArgsConstructor
+public class PtsTopCardRepository {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    /* BASE WHERE CLAUSE */
+    private static final String BASE_WHERE =
+            " FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW " +
+            " WHERE CO_TYPE = 'CO Milestone' " +
+            " AND USE_CASE_NO IS NOT NULL " +
+            " AND PROJECT_OVERALL_RAG_STATUS <> 'NA' " +
+            " AND RAG_STATUS <> 'NA' " +
+            " {{GLOBAL_FILTER}} ";
+
+    /* TOP CARD 1 */
+    public List<Map<String, Object>> getUseCaseCountByOverallRag(GlobalFilterRequest filter) {
+        String sql = "SELECT PROJECT_OVERALL_RAG_STATUS, " +
+                     "COUNT(DISTINCT USE_CASE_NO) AS useCaseCount " +
+                     BASE_WHERE +
+                     " GROUP BY PROJECT_OVERALL_RAG_STATUS";
+        return execute(sql, filter);
+    }
+
+    /* TOP CARD 2 */
+    public List<Map<String, Object>> getUseCaseCountByOwnershipAndCategory(GlobalFilterRequest filter) {
+        String sql = "SELECT USE_CASE_OWNERSHIP, " +
+                     "USE_CASE_CATEGORY, " +
+                     "COUNT(DISTINCT USE_CASE_NO) AS useCaseCount " +
+                     BASE_WHERE +
+                     " GROUP BY USE_CASE_OWNERSHIP, USE_CASE_CATEGORY " +
+                     " ORDER BY 3 DESC, 1, 2";
+        return execute(sql, filter);
+    }
+
+    /* TOP CARD 3 */
+    public List<Map<String, Object>> getMilestoneCountByYearCategoryRag(GlobalFilterRequest filter) {
+        String sql = "SELECT SUBSTR(DUE_DATE_YEAR, -2) || '-' || USE_CASE_CATEGORY AS dueYearCategory, " +
+                     "RAG_STATUS, " +
+                     "COUNT(DISTINCT MILESTONE_ID) AS useCaseCount " +
+                     BASE_WHERE +
+                     " GROUP BY SUBSTR(DUE_DATE_YEAR, -2) || '-' || USE_CASE_CATEGORY, RAG_STATUS " +
+                     " ORDER BY 1";
+        return execute(sql, filter);
+    }
+
+    /* COMMON EXECUTION */
+    private List<Map<String, Object>> execute(String sql, GlobalFilterRequest filter) {
+        String globalFilter = GlobalFilterBuilder.build(filter);
+        sql = sql.replace("{{GLOBAL_FILTER}}", globalFilter);
+
+        Map<String, Object> params = buildParams(filter);
+        return jdbcTemplate.queryForList(sql, params);
+    }
+
+    private Map<String, Object> buildParams(GlobalFilterRequest f) {
+        Map<String, Object> params = new HashMap<>();
+
+        // Use Case
+        params.put("useCaseNo", f.getUseCaseNo());
+        params.put("useCaseOwnership", f.getUseCaseOwnership());
+        params.put("useCaseOwner", f.getUseCaseOwner());
+        params.put("useCaseAccountableExecutive", f.getUseCaseAccountableExecutive());
+        params.put("useCaseCategory", f.getUseCaseRbcmType());
+        params.put("projectOverallRagStatus", f.getUseCaseRagStatus());
+
+        // Owners
+        params.put("smtAccountableExecutive", f.getAccountableExecutive());
+        params.put("milestoneOwner", f.getMilestoneOwner());
+        params.put("deliverableOwner", f.getDeliverableOwner());
+
+        // Timeline
+        params.put("milestoneYear", f.getMilestoneYear());
+        params.put("deliverableYear", f.getDeliverableYear());
+
+        // Work Effort
+        params.put("initiativeName", f.getInitiative());
+        params.put("programName", f.getProgram());
+        params.put("workEffortName", f.getProject());
+        params.put("derivedProgramCategory", f.getProgramCategory());
+
+        // Milestone attributes
+        params.put("occConsentOrderArticle", f.getArticle());
+        params.put("subPortfolioName", f.getSubPortfolio());
+
+        // RAG
+        params.put("milestoneRagStatus", f.getMilestoneRag());
+        params.put("deliverableRagStatus", f.getDeliverableRag());
+
+        return params;
+    }
+}
 
