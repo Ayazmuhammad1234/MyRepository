@@ -1,364 +1,280 @@
-
-@RestController
-@RequestMapping("/api/pts")
-@RequiredArgsConstructor
-public class PtsDashboardController {
-
-    private final PtsDashboardService ptsDashboardService;
-
-    /**
-     * ===============================
-     * MAIN PTS DASHBOARD (TABLE DATA)
-     * ===============================
-     */
-    @GetMapping("/dashboard")
-    public List<PtsDashboardDto> getDashboardData(
-            @RequestParam(required = false) String useCaseNo,
-            @RequestParam(required = false) String useCaseOwnership,
-            @RequestParam(required = false) String useCaseOwner,
-            @RequestParam(required = false) String useCaseAccountableExecutive,
-            @RequestParam(required = false) String useCaseRbcmType,
-            @RequestParam(required = false) String useCaseRagStatus,
-
-            @RequestParam(required = false) String owner,
-            @RequestParam(required = false) String accountableExecutive,
-            @RequestParam(required = false) Integer rev,
-            @RequestParam(required = false) String milestoneOwner,
-            @RequestParam(required = false) String deliverableOwner,
-
-            @RequestParam(required = false) String initiative,
-            @RequestParam(required = false) String program,
-            @RequestParam(required = false) String project,
-            @RequestParam(required = false) String programCategory,
-            @RequestParam(required = false) String article,
-            @RequestParam(required = false) String subPortfolio,
-
-            @RequestParam(required = false) String milestoneRag,
-            @RequestParam(required = false) String deliverableRag,
-
-            // -------- DATE OPTIONS (MANDATORY) --------
-            @RequestParam String dateType, // BUSINESS / BASELINE
-            @RequestParam LocalDate fromDate,
-            @RequestParam LocalDate toDate
-    ) {
-        return ptsDashboardService.getDashboardData(
-                useCaseNo, useCaseOwnership, useCaseOwner,
-                useCaseAccountableExecutive, useCaseRbcmType, useCaseRagStatus,
-                owner, accountableExecutive, rev,
-                milestoneOwner, deliverableOwner,
-                initiative, program, project, programCategory,
-                article, subPortfolio,
-                milestoneRag, deliverableRag,
-                dateType, fromDate, toDate
-        );
-    }
-
-    /**
-     * ===============================
-     * TOP CARD 1 – PROJECT OVERALL RAG
-     * ===============================
-     */
-    @GetMapping("/top-card/project-rag")
-    public List<TopCardProjectRagDto> getTopCardProjectRag(
-            @RequestParam String dateType,
-            @RequestParam LocalDate fromDate,
-            @RequestParam LocalDate toDate,
-
-            @RequestParam(required = false) String useCaseOwnership,
-            @RequestParam(required = false) String milestoneRag,
-            @RequestParam(required = false) String deliverableRag
-    ) {
-        return ptsDashboardService.getTopCardProjectRag(
-                dateType, fromDate, toDate,
-                useCaseOwnership, milestoneRag, deliverableRag
-        );
-    }
-
-    /**
-     * =========================================
-     * TOP CARD 2 – OWNERSHIP vs USE CASE CATEGORY
-     * =========================================
-     */
-    @GetMapping("/top-card/ownership-category")
-    public List<TopCardOwnershipCategoryDto> getTopCardOwnershipCategory(
-            @RequestParam String dateType,
-            @RequestParam LocalDate fromDate,
-            @RequestParam LocalDate toDate,
-
-            @RequestParam(required = false) String useCaseOwnership,
-            @RequestParam(required = false) String useCaseCategory
-    ) {
-        return ptsDashboardService.getTopCardOwnershipCategory(
-                dateType, fromDate, toDate,
-                useCaseOwnership, useCaseCategory
-        );
-    }
-
-    /**
-     * ===============================
-     * FILTER DROPDOWNS (LANDING)
-     * ===============================
-     */
-    @GetMapping("/filters")
-    public PtsFilterResponse getFilterDropdowns() {
-        return ptsDashboardService.getAllFilters();
-    }
-}
-
-
-
-
-public final class GlobalFilterBuilder {
-
-    private GlobalFilterBuilder() {}
-
-    public static String build(Map<String, Object> params) {
-
-        StringBuilder sql = new StringBuilder();
-
-        /* =======================
-           1. USE CASE FILTERS
-        ======================== */
-
-        if (params.containsKey("useCaseNo")) {
-            sql.append(" AND USE_CASE_NO = :useCaseNo");
-        }
-
-        if (params.containsKey("useCaseOwnership")) {
-            sql.append(" AND USE_CASE_OWNERSHIP = :useCaseOwnership");
-        }
-
-        if (params.containsKey("useCaseOwner")) {
-            sql.append(" AND USE_CASE_OWNER = :useCaseOwner");
-        }
-
-        if (params.containsKey("useCaseAccountableExec")) {
-            sql.append(" AND USE_CASE_ACCOUNTABLE_EXECUTIVE = :useCaseAccountableExec");
-        }
-
-        if (params.containsKey("useCaseRbcmType")) {
-            sql.append(" AND CO_TYPE = :useCaseRbcmType");
-        }
-
-        if (params.containsKey("useCaseRagStatus")) {
-            sql.append(" AND PROJECT_OVERALL_RAG_STATUS IN (:useCaseRagStatus)");
-            params.put("useCaseRagStatus", split(params.get("useCaseRagStatus")));
-        }
-
-        /* =======================
-           2. OWNER FILTERS
-        ======================== */
-
-        if (params.containsKey("accountableExecutive")) {
-            sql.append(" AND SMT_ACCOUNTABLE_EXECUTIVE = :accountableExecutive");
-        }
-
-        if (params.containsKey("milestoneOwner")) {
-            sql.append(" AND CO_TYPE = 'CO Milestone'");
-            sql.append(" AND DELIVERABLE_OWNER = :milestoneOwner");
-        }
-
-        if (params.containsKey("deliverableOwner")) {
-            sql.append(" AND CO_TYPE = 'CO Deliverable'");
-            sql.append(" AND DELIVERABLE_OWNER = :deliverableOwner");
-        }
-
-        /* =======================
-           3. TIMELINE FILTERS
-        ======================== */
-
-        if (params.containsKey("timelineType")) {
-            sql.append(" AND CO_TYPE = :timelineType");
-        }
-
-        /* =======================
-           4. WORK EFFORT FILTERS
-        ======================== */
-
-        if (params.containsKey("initiative")) {
-            sql.append(" AND INITIATIVE_NAME = :initiative");
-        }
-
-        if (params.containsKey("program")) {
-            sql.append(" AND PROGRAM_NAME = :program");
-        }
-
-        if (params.containsKey("project")) {
-            sql.append(" AND WORK_EFFORT_NAME = :project");
-        }
-
-        if (params.containsKey("programCategory")) {
-            sql.append(" AND DERIVED_PROGRAM_CATEGORY = :programCategory");
-        }
-
-        /* =======================
-           5. MILESTONE ATTRIBUTES
-        ======================== */
-
-        if (params.containsKey("article")) {
-            sql.append(" AND OCC_CONSENT_ORDER_ARTICLE = :article");
-        }
-
-        if (params.containsKey("subPortfolio")) {
-            sql.append(" AND SUBPORTFOLIO_NAME = :subPortfolio");
-        }
-
-        /* =======================
-           6. RAG STATUS FILTERS
-        ======================== */
-
-        if (params.containsKey("milestoneRag")) {
-            sql.append(" AND CO_TYPE = 'CO Milestone'");
-            sql.append(" AND RAG_STATUS IN (:milestoneRag)");
-            params.put("milestoneRag", split(params.get("milestoneRag")));
-        }
-
-        if (params.containsKey("deliverableRag")) {
-            sql.append(" AND CO_TYPE = 'CO Deliverable'");
-            sql.append(" AND RAG_STATUS IN (:deliverableRag)");
-            params.put("deliverableRag", split(params.get("deliverableRag")));
-        }
-
-        return sql.toString();
-    }
-
-    private static List<String> split(Object value) {
-        return Arrays.stream(value.toString().split(","))
-                .map(String::trim)
-                .toList();
-    }
-}
-
-_____________________________________________
-
-
 @Data
-public class TopCardFilterRequest {
+@NoArgsConstructor
+@AllArgsConstructor
+public class GlobalFilterRequest {
+    private List<String> useCaseNo;
+    private List<String> useCaseOwnership;
+    private List<String> useCaseOwner;
+    private List<String> useCaseAccountableExecutive;
+    private List<String> useCaseCategory;
+    private List<String> projectOverallRagStatus;
 
-    // Use Case
-    private String useCaseOwnership;
-    private String useCaseOwner;
-    private String useCaseAccountableExecutive;
-    private String useCaseRagStatus;
+    private List<String> smtAccountableExecutive;
+    private List<String> milestoneOwner;
+    private List<String> deliverableOwner;
 
-    // Owners
-    private String accountableExecutive;
-    private String milestoneOwner;
-    private String deliverableOwner;
+    private List<String> programName;
+    private List<String> initiativeName;
+    private List<String> workEffortName;
+    private List<String> derivedProgramCategory;
 
-    // Work Effort
-    private String initiative;
-    private String program;
-    private String project;
-    private String programCategory;
+    private List<String> occConsentOrderArticle;
+    private List<String> subportfolioName;
 
-    // Milestone Attributes
-    private String article;
-    private String subPortfolio;
+    private List<Integer> useCaseDueYear;
+    private List<String> useCaseDueQuarter;
+    private List<String> useCaseDueMonth;
 
-    // RAG
-    private String milestoneRag;
-    private String deliverableRag;
+    private List<Integer> milestoneYear;
+    private List<String> milestoneQuarter;
+    private List<String> milestoneMonth;
 
-    // Timeline
-    private LocalDate milestoneFromDate;
-    private LocalDate milestoneToDate;
+    private List<Integer> deliverableYear;
+    private List<String> deliverableQuarter;
+    private List<String> deliverableMonth;
+
+    private List<String> milestoneRagStatus;
+    private List<String> deliverableRagStatus;
 }
 
+
+
+
+
+
+
+
+
+
+
+// global filter 
+
+
+package com.yourcompany.pts.util;
+
+import com.yourcompany.pts.dto.GlobalFilterRequest;
+
+import java.util.List;
+import java.util.StringJoiner;
+
+public class GlobalFilterBuilder {
+
+    private GlobalFilterBuilder() {
+    }
+
+    public static String build(GlobalFilterRequest filter) {
+
+        if (filter == null) {
+            return "";
+        }
+
+        StringJoiner where = new StringJoiner("\nAND ", "\nAND ", "");
+
+        /* ================= Use Case Filters ================= */
+        addIn(where, "MS.USE_CASE_NO", filter.getUseCaseNo());
+        addIn(where, "MS.USE_CASE_OWNERSHIP", filter.getUseCaseOwnership());
+        addIn(where, "MS.USE_CASE_OWNER", filter.getUseCaseOwner());
+        addIn(where, "MS.USE_CASE_ACCOUNTABLE_EXECUTIVE", filter.getUseCaseAccountableExecutive());
+        addIn(where, "MS.USE_CASE_CATEGORY", filter.getUseCaseCategory());
+        addIn(where, "MS.PROJECT_OVERALL_RAG_STATUS", filter.getProjectOverallRagStatus());
+
+        /* ================= Ownership ================= */
+        addIn(where, "MS.SMT_ACCOUNTABLE_EXECUTIVE", filter.getSmtAccountableExecutive());
+        addIn(where, "MS.MILESTONE_OWNER", filter.getMilestoneOwner());
+        addIn(where, "DEL.DELIVERABLE_OWNER", filter.getDeliverableOwner());
+
+        /* ================= Program / Work ================= */
+        addIn(where, "MS.PROGRAM_NAME", filter.getProgramName());
+        addIn(where, "DEL.INITIATIVE_NAME", filter.getInitiativeName());
+        addIn(where, "DEL.WORK_EFFORT_NAME", filter.getWorkEffortName());
+        addIn(where, "DEL.DERIVED_PROGRAM_CATEGORY", filter.getDerivedProgramCategory());
+
+        /* ================= Regulatory / Portfolio ================= */
+        addIn(where, "MS.OCC_CONSENT_ORDER_ARTICLE", filter.getOccConsentOrderArticle());
+        addIn(where, "MS.SUBPORTFOLIO_NAME", filter.getSubportfolioName());
+
+        /* ================= Use Case Due Date ================= */
+        addIn(where, "UC.USE_CASE_DUE_DT_YEAR", filter.getUseCaseDueYear());
+        addIn(where, "UC.USE_CASE_DUE_DT_QTR", filter.getUseCaseDueQuarter());
+        addIn(where, "UC.USE_CASE_DUE_DT_MONTH", filter.getUseCaseDueMonth());
+
+        /* ================= Milestone Due Date ================= */
+        addIn(where, "MS.MILESTONE_YEAR", filter.getMilestoneYear());
+        addIn(where, "MS.MILESTONE_QTR", filter.getMilestoneQuarter());
+        addIn(where, "MS.MILESTONE_MONTH", filter.getMilestoneMonth());
+
+        /* ================= Deliverable Due Date ================= */
+        addIn(where, "DEL.DELIVERABLE_YEAR", filter.getDeliverableYear());
+        addIn(where, "DEL.DELIVERABLE_QTR", filter.getDeliverableQuarter());
+        addIn(where, "DEL.DELIVERABLE_MONTH", filter.getDeliverableMonth());
+
+        /* ================= RAG ================= */
+        addIn(where, "MS.MILESTONE_RAG_STATUS", filter.getMilestoneRagStatus());
+        addIn(where, "DEL.DELIVERABLE_RAG_STATUS", filter.getDeliverableRagStatus());
+
+        return where.toString();
+    }
+
+    /* ================= Utility ================= */
+    private static <T> void addIn(StringJoiner where, String column, List<T> values) {
+        if (values == null || values.isEmpty()) {
+            return;
+        }
+
+        String joined = values.stream()
+                .map(v -> v instanceof Number ? v.toString() : "'" + escape(v.toString()) + "'")
+                .reduce((a, b) -> a + "," + b)
+                .orElse("");
+
+        where.add(column + " IN (" + joined + ")");
+    }
+
+    private static String escape(String value) {
+        return value.replace("'", "''");
+    }
+}
+
+
+
+
+
+// filter repo
+
+
+
+
+String sql = baseSql.replace("{{GLOBAL_FILTER}}",
+        GlobalFilterBuilder.build(filterRequest));
+
+return namedParameterJdbcTemplate.query(
+        sql,
+        new BeanPropertyRowMapper<>(UseCaseDashboardDto.class)
+);
+
+
+
+
+
+// dto topcard response 
+
+
+package com.yourcompany.pts.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class TopCard1Response {
-
-    private String ragStatus;
-    private Long useCaseCount;
+public class TopCardResponse {
+    private String label;
+    private Long value;
 }
 
 
+// repo layer 
 
-@Repository
-@RequiredArgsConstructor
-public class TopCard1Repository {
 
-    private final NamedParameterJdbcTemplate jdbcTemplate;
+// common execution 
 
-    private static final String SQL = """
-        WITH preprocessed_data AS (
-            SELECT
-                USE_CASE_NO,
-                PROJECT_OVERALL_RAG_STATUS,
-                USE_CASE_OWNERSHIP,
-                USE_CASE_OWNER,
-                USE_CASE_ACCOUNTABLE_EXECUTIVE,
-                PROGRAM_NAME,
-                INITIATIVE_NAME,
-                WORK_EFFORT_NAME,
-                DERIVED_PROGRAM_CATEGORY,
-                OCC_CONSENT_ORDER_ARTICLE,
-                SUBPORTFOLIO_NAME,
-                RAG_STATUS,
-                DUE_DATE,
-                CO_TYPE
-            FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW
-            WHERE USE_CASE_NO IS NOT NULL
-              AND PROJECT_OVERALL_RAG_STATUS <> 'NA'
-              AND RAG_STATUS <> 'NA'
-              {{GLOBAL_FILTER}}
-        )
-        SELECT
-            PROJECT_OVERALL_RAG_STATUS AS RAG_STATUS,
-            COUNT(DISTINCT USE_CASE_NO) AS USE_CASE_COUNT
-        FROM preprocessed_data
-        GROUP BY PROJECT_OVERALL_RAG_STATUS
-        ORDER BY PROJECT_OVERALL_RAG_STATUS
+private Long executeCountQuery(String sql, GlobalFilterRequest filter) {
+
+    String finalSql = sql.replace(
+            "{{GLOBAL_FILTER}}",
+            GlobalFilterBuilder.build(filter)
+    );
+
+    return namedParameterJdbcTemplate.queryForObject(finalSql, Map.of(), Long.class);
+}
+
+// topcard 1
+
+public Long getTotalUseCases(GlobalFilterRequest filter) {
+
+    String sql = """
+        SELECT COUNT(DISTINCT MS.USE_CASE_NO)
+        FROM ( {{BASE_QUERY}} )
+        WHERE 1=1
+        {{GLOBAL_FILTER}}
         """;
 
-    public List<TopCard1Response> fetchTopCard1(Map<String, Object> params) {
+    return executeCountQuery(sql, filter);
+}
 
-        String finalSql = GlobalFilterBuilder.build(SQL, params);
 
-        return jdbcTemplate.query(
-                finalSql,
-                params,
-                (rs, rowNum) -> new TopCard1Response(
-                        rs.getString("RAG_STATUS"),
-                        rs.getLong("USE_CASE_COUNT")
-                )
-        );
-    }
+// Top 2 
+
+public Long getTotalMilestones(GlobalFilterRequest filter) {
+
+    String sql = """
+        SELECT COUNT(DISTINCT MS.MILESTONE_ID)
+        FROM ( {{BASE_QUERY}} )
+        WHERE 1=1
+        {{GLOBAL_FILTER}}
+        """;
+
+    return executeCountQuery(sql, filter);
 }
 
 
 
+// Top 3 
 
+
+public Long getTotalDeliverables(GlobalFilterRequest filter) {
+
+    String sql = """
+        SELECT COUNT(DISTINCT DEL.WORK_EFFORT_NAME)
+        FROM ( {{BASE_QUERY}} )
+        WHERE 1=1
+        {{GLOBAL_FILTER}}
+        """;
+
+    return executeCountQuery(sql, filter);
+}
+
+
+
+// service layer 
 
 
 @Service
 @RequiredArgsConstructor
-public class TopCard1Service {
+public class TopCardService {
 
-    private final TopCard1Repository repository;
+    private final TopCardRepository repository;
 
-    public List<TopCard1Response> getTopCard1(TopCardFilterRequest request) {
+    public List<TopCardResponse> getTopCards(GlobalFilterRequest filter) {
 
-        Map<String, Object> params = FilterParamMapper.map(request);
+        return List.of(
+                new TopCardResponse("Total Use Cases",
+                        repository.getTotalUseCases(filter)),
 
-        return repository.fetchTopCard1(params);
+                new TopCardResponse("Total Milestones",
+                        repository.getTotalMilestones(filter)),
+
+                new TopCardResponse("Total Deliverables",
+                        repository.getTotalDeliverables(filter))
+        );
     }
 }
+
+
+
+// controller 
+
 
 @RestController
 @RequestMapping("/api/pts/dashboard")
 @RequiredArgsConstructor
-public class TopCard1Controller {
+public class TopCardController {
 
-    private final TopCard1Service service;
+    private final TopCardService service;
 
-    @PostMapping("/topcard1")
-    public ResponseEntity<List<TopCard1Response>> getTopCard1(
-            @RequestBody TopCardFilterRequest request) {
+    @PostMapping("/top-cards")
+    public List<TopCardResponse> getTopCards(
+            @RequestBody GlobalFilterRequest filter) {
 
-        return ResponseEntity.ok(service.getTopCard1(request));
+        return service.getTopCards(filter);
     }
 }
 
