@@ -228,3 +228,139 @@ public final class GlobalFilterBuilder {
                 .toList();
     }
 }
+
+_____________________________________________
+
+
+@Data
+public class TopCardFilterRequest {
+
+    // Use Case
+    private String useCaseOwnership;
+    private String useCaseOwner;
+    private String useCaseAccountableExecutive;
+    private String useCaseRagStatus;
+
+    // Owners
+    private String accountableExecutive;
+    private String milestoneOwner;
+    private String deliverableOwner;
+
+    // Work Effort
+    private String initiative;
+    private String program;
+    private String project;
+    private String programCategory;
+
+    // Milestone Attributes
+    private String article;
+    private String subPortfolio;
+
+    // RAG
+    private String milestoneRag;
+    private String deliverableRag;
+
+    // Timeline
+    private LocalDate milestoneFromDate;
+    private LocalDate milestoneToDate;
+}
+
+
+@Data
+@AllArgsConstructor
+public class TopCard1Response {
+
+    private String ragStatus;
+    private Long useCaseCount;
+}
+
+
+
+@Repository
+@RequiredArgsConstructor
+public class TopCard1Repository {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    private static final String SQL = """
+        WITH preprocessed_data AS (
+            SELECT
+                USE_CASE_NO,
+                PROJECT_OVERALL_RAG_STATUS,
+                USE_CASE_OWNERSHIP,
+                USE_CASE_OWNER,
+                USE_CASE_ACCOUNTABLE_EXECUTIVE,
+                PROGRAM_NAME,
+                INITIATIVE_NAME,
+                WORK_EFFORT_NAME,
+                DERIVED_PROGRAM_CATEGORY,
+                OCC_CONSENT_ORDER_ARTICLE,
+                SUBPORTFOLIO_NAME,
+                RAG_STATUS,
+                DUE_DATE,
+                CO_TYPE
+            FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW
+            WHERE USE_CASE_NO IS NOT NULL
+              AND PROJECT_OVERALL_RAG_STATUS <> 'NA'
+              AND RAG_STATUS <> 'NA'
+              {{GLOBAL_FILTER}}
+        )
+        SELECT
+            PROJECT_OVERALL_RAG_STATUS AS RAG_STATUS,
+            COUNT(DISTINCT USE_CASE_NO) AS USE_CASE_COUNT
+        FROM preprocessed_data
+        GROUP BY PROJECT_OVERALL_RAG_STATUS
+        ORDER BY PROJECT_OVERALL_RAG_STATUS
+        """;
+
+    public List<TopCard1Response> fetchTopCard1(Map<String, Object> params) {
+
+        String finalSql = GlobalFilterBuilder.build(SQL, params);
+
+        return jdbcTemplate.query(
+                finalSql,
+                params,
+                (rs, rowNum) -> new TopCard1Response(
+                        rs.getString("RAG_STATUS"),
+                        rs.getLong("USE_CASE_COUNT")
+                )
+        );
+    }
+}
+
+
+
+
+
+
+@Service
+@RequiredArgsConstructor
+public class TopCard1Service {
+
+    private final TopCard1Repository repository;
+
+    public List<TopCard1Response> getTopCard1(TopCardFilterRequest request) {
+
+        Map<String, Object> params = FilterParamMapper.map(request);
+
+        return repository.fetchTopCard1(params);
+    }
+}
+
+@RestController
+@RequestMapping("/api/pts/dashboard")
+@RequiredArgsConstructor
+public class TopCard1Controller {
+
+    private final TopCard1Service service;
+
+    @PostMapping("/topcard1")
+    public ResponseEntity<List<TopCard1Response>> getTopCard1(
+            @RequestBody TopCardFilterRequest request) {
+
+        return ResponseEntity.ok(service.getTopCard1(request));
+    }
+}
+
+
+
