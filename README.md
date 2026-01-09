@@ -476,3 +476,76 @@ public class PtsTopCardRepository {
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+// Test api
+
+
+package com.yourcompany.pts.controller;
+
+import com.yourcompany.pts.dto.GlobalFilterRequest;
+import com.yourcompany.pts.dto.PtsTopCardsResponse;
+import com.yourcompany.pts.service.PtsTopCardService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Arrays;
+
+@RestController
+@RequestMapping("/api/pts/top-cards")
+@RequiredArgsConstructor
+public class PtsTopCardController {
+
+    private final PtsTopCardService service;
+
+    /**
+     * Hit this endpoint in browser
+     * Input is taken as constant inside controller
+     */
+    @GetMapping("/test")
+    public PtsTopCardsResponse testTopCards() {
+
+        // ======= CONSTANT INPUT FOR TESTING =======
+        GlobalFilterRequest filter = new GlobalFilterRequest();
+
+        // Use Case
+        filter.setUseCaseOwnership(Arrays.asList("Business", "IT"));
+        filter.setUseCaseRbcmType(Arrays.asList("End Point Consumption"));
+        filter.setUseCaseRagStatus(Arrays.asList("Red", "Green"));
+
+        // Owners
+        filter.setAccountableExecutive(Arrays.asList("John Doe"));
+        filter.setMilestoneOwner(Arrays.asList("MilestoneOwner1"));
+        filter.setDeliverableOwner(Arrays.asList("DeliverableOwner1"));
+
+        // Timeline
+        filter.setMilestoneYear(Arrays.asList(2025));
+        filter.setDeliverableYear(Arrays.asList(2025));
+
+        // Work Effort
+        filter.setInitiative(Arrays.asList("Initiative1"));
+        filter.setProgram(Arrays.asList("PTS"));
+        filter.setProject(Arrays.asList("Project1"));
+        filter.setProgramCategory(Arrays.asList("ProgramCat1"));
+
+        // Milestone attributes
+        filter.setArticle(Arrays.asList("Article1"));
+        filter.setSubPortfolio(Arrays.asList("SubPortfolio1"));
+
+        // RAG Status
+        filter.setMilestoneRag(Arrays.asList("Red"));
+        filter.setDeliverableRag(Arrays.asList("Green"));
+
+        // ======= CALL SERVICE =======
+        return service.getAllTopCards(filter);
+    }
+}
