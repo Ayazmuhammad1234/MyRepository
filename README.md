@@ -549,3 +549,70 @@ public class PtsTopCardController {
         return service.getAllTopCards(filter);
     }
 }
+
+
+
+
+
+
+// new gf builder
+
+
+
+public class GlobalFilterBuilder {
+
+    private GlobalFilterBuilder() {}
+
+    public static String build(GlobalFilterRequest f) {
+
+        StringBuilder sb = new StringBuilder();
+
+        // Use Case
+        appendFilter(sb, "USE_CASE_NO", "useCaseNo", f.getUseCaseNo());
+        appendFilter(sb, "USE_CASE_OWNERSHIP", "useCaseOwnership", f.getUseCaseOwnership());
+        appendFilter(sb, "USE_CASE_OWNER", "useCaseOwner", f.getUseCaseOwner());
+        appendFilter(sb, "USE_CASE_ACCOUNTABLE_EXECUTIVE", "useCaseAccountableExecutive", f.getUseCaseAccountableExecutive());
+        appendFilter(sb, "USE_CASE_CATEGORY", "useCaseRbcmType", f.getUseCaseRbcmType());
+        appendFilter(sb, "PROJECT_OVERALL_RAG_STATUS", "useCaseRagStatus", f.getUseCaseRagStatus());
+
+        // Owners
+        appendFilter(sb, "SMT_ACCOUNTABLE_EXECUTIVE", "accountableExecutive", f.getAccountableExecutive());
+        appendFilter(sb, "MILESTONE_OWNER", "milestoneOwner", f.getMilestoneOwner());
+        appendFilter(sb, "DELIVERABLE_OWNER", "deliverableOwner", f.getDeliverableOwner());
+
+        // Timeline
+        appendFilter(sb, "MILESTONE_YEAR", "milestoneYear", f.getMilestoneYear());
+        appendFilter(sb, "DELIVERABLE_YEAR", "deliverableYear", f.getDeliverableYear());
+
+        // Work Effort
+        appendFilter(sb, "INITIATIVE_NAME", "initiative", f.getInitiative());
+        appendFilter(sb, "PROGRAM_NAME", "program", f.getProgram());
+        appendFilter(sb, "WORK_EFFORT_NAME", "project", f.getProject());
+        appendFilter(sb, "DERIVED_PROGRAM_CATEGORY", "programCategory", f.getProgramCategory());
+
+        // Milestone attributes
+        appendFilter(sb, "OCC_CONSENT_ORDER_ARTICLE", "article", f.getArticle());
+        appendFilter(sb, "SUBPORTFOLIO_NAME", "subPortfolio", f.getSubPortfolio());
+
+        // RAG
+        appendFilter(sb, "MILESTONE_RAG_STATUS", "milestoneRag", f.getMilestoneRag());
+        appendFilter(sb, "DELIVERABLE_RAG_STATUS", "deliverableRag", f.getDeliverableRag());
+
+        return sb.toString();
+    }
+
+    private static void appendFilter(
+            StringBuilder sb,
+            String column,
+            String paramName,
+            List<?> values) {
+
+        if (values != null && !values.isEmpty()) {
+            sb.append(" AND ")
+              .append(column)
+              .append(" IN (:")
+              .append(paramName)
+              .append(")");
+        }
+    }
+}
