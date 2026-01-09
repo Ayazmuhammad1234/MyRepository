@@ -1,40 +1,53 @@
+package com.yourcompany.pts.dto;
+
+import lombok.Data;
+import java.util.List;
+
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class GlobalFilterRequest {
+
+    /* =======================
+       1. USE CASE
+       ======================= */
     private List<String> useCaseNo;
     private List<String> useCaseOwnership;
     private List<String> useCaseOwner;
     private List<String> useCaseAccountableExecutive;
-    private List<String> useCaseCategory;
-    private List<String> projectOverallRagStatus;
+    private List<String> useCaseRbcmType;          // USE_CASE_CATEGORY
+    private List<String> useCaseRagStatus;         // PROJECT_OVERALL_RAG_STATUS
 
-    private List<String> smtAccountableExecutive;
+    /* =======================
+       2. OWNER
+       ======================= */
+    private List<String> accountableExecutive;     // SMT_ACCOUNTABLE_EXECUTIVE
     private List<String> milestoneOwner;
     private List<String> deliverableOwner;
 
-    private List<String> programName;
-    private List<String> initiativeName;
-    private List<String> workEffortName;
-    private List<String> derivedProgramCategory;
-
-    private List<String> occConsentOrderArticle;
-    private List<String> subportfolioName;
-
-    private List<Integer> useCaseDueYear;
-    private List<String> useCaseDueQuarter;
-    private List<String> useCaseDueMonth;
-
+    /* =======================
+       3. TIMELINE
+       ======================= */
     private List<Integer> milestoneYear;
-    private List<String> milestoneQuarter;
-    private List<String> milestoneMonth;
-
     private List<Integer> deliverableYear;
-    private List<String> deliverableQuarter;
-    private List<String> deliverableMonth;
 
-    private List<String> milestoneRagStatus;
-    private List<String> deliverableRagStatus;
+    /* =======================
+       4. WORK EFFORT
+       ======================= */
+    private List<String> initiative;
+    private List<String> program;
+    private List<String> project;                  // WORK_EFFORT_NAME
+    private List<String> programCategory;           // DERIVED_PROGRAM_CATEGORY
+
+    /* =======================
+       5. MILESTONE ATTRIBUTES
+       ======================= */
+    private List<String> article;                   // OCC_CONSENT_ORDER_ARTICLE
+    private List<String> subPortfolio;
+
+    /* =======================
+       6. RAG STATUS
+       ======================= */
+    private List<String> milestoneRag;
+    private List<String> deliverableRag;
 }
 
 
@@ -43,219 +56,27 @@ public class GlobalFilterRequest {
 
 
 
+// pts response 
 
-
-
-
-// global filter 
-
-
-package com.yourcompany.pts.util;
-
-import com.yourcompany.pts.dto.GlobalFilterRequest;
-
-import java.util.List;
-import java.util.StringJoiner;
-
-public class GlobalFilterBuilder {
-
-    private GlobalFilterBuilder() {
-    }
-
-    public static String build(GlobalFilterRequest filter) {
-
-        if (filter == null) {
-            return "";
-        }
-
-        StringJoiner where = new StringJoiner("\nAND ", "\nAND ", "");
-
-        /* ================= Use Case Filters ================= */
-        addIn(where, "MS.USE_CASE_NO", filter.getUseCaseNo());
-        addIn(where, "MS.USE_CASE_OWNERSHIP", filter.getUseCaseOwnership());
-        addIn(where, "MS.USE_CASE_OWNER", filter.getUseCaseOwner());
-        addIn(where, "MS.USE_CASE_ACCOUNTABLE_EXECUTIVE", filter.getUseCaseAccountableExecutive());
-        addIn(where, "MS.USE_CASE_CATEGORY", filter.getUseCaseCategory());
-        addIn(where, "MS.PROJECT_OVERALL_RAG_STATUS", filter.getProjectOverallRagStatus());
-
-        /* ================= Ownership ================= */
-        addIn(where, "MS.SMT_ACCOUNTABLE_EXECUTIVE", filter.getSmtAccountableExecutive());
-        addIn(where, "MS.MILESTONE_OWNER", filter.getMilestoneOwner());
-        addIn(where, "DEL.DELIVERABLE_OWNER", filter.getDeliverableOwner());
-
-        /* ================= Program / Work ================= */
-        addIn(where, "MS.PROGRAM_NAME", filter.getProgramName());
-        addIn(where, "DEL.INITIATIVE_NAME", filter.getInitiativeName());
-        addIn(where, "DEL.WORK_EFFORT_NAME", filter.getWorkEffortName());
-        addIn(where, "DEL.DERIVED_PROGRAM_CATEGORY", filter.getDerivedProgramCategory());
-
-        /* ================= Regulatory / Portfolio ================= */
-        addIn(where, "MS.OCC_CONSENT_ORDER_ARTICLE", filter.getOccConsentOrderArticle());
-        addIn(where, "MS.SUBPORTFOLIO_NAME", filter.getSubportfolioName());
-
-        /* ================= Use Case Due Date ================= */
-        addIn(where, "UC.USE_CASE_DUE_DT_YEAR", filter.getUseCaseDueYear());
-        addIn(where, "UC.USE_CASE_DUE_DT_QTR", filter.getUseCaseDueQuarter());
-        addIn(where, "UC.USE_CASE_DUE_DT_MONTH", filter.getUseCaseDueMonth());
-
-        /* ================= Milestone Due Date ================= */
-        addIn(where, "MS.MILESTONE_YEAR", filter.getMilestoneYear());
-        addIn(where, "MS.MILESTONE_QTR", filter.getMilestoneQuarter());
-        addIn(where, "MS.MILESTONE_MONTH", filter.getMilestoneMonth());
-
-        /* ================= Deliverable Due Date ================= */
-        addIn(where, "DEL.DELIVERABLE_YEAR", filter.getDeliverableYear());
-        addIn(where, "DEL.DELIVERABLE_QTR", filter.getDeliverableQuarter());
-        addIn(where, "DEL.DELIVERABLE_MONTH", filter.getDeliverableMonth());
-
-        /* ================= RAG ================= */
-        addIn(where, "MS.MILESTONE_RAG_STATUS", filter.getMilestoneRagStatus());
-        addIn(where, "DEL.DELIVERABLE_RAG_STATUS", filter.getDeliverableRagStatus());
-
-        return where.toString();
-    }
-
-    /* ================= Utility ================= */
-    private static <T> void addIn(StringJoiner where, String column, List<T> values) {
-        if (values == null || values.isEmpty()) {
-            return;
-        }
-
-        String joined = values.stream()
-                .map(v -> v instanceof Number ? v.toString() : "'" + escape(v.toString()) + "'")
-                .reduce((a, b) -> a + "," + b)
-                .orElse("");
-
-        where.add(column + " IN (" + joined + ")");
-    }
-
-    private static String escape(String value) {
-        return value.replace("'", "''");
-    }
-}
-
-
-
-
-
-// filter repo
-
-
-
-
-String sql = baseSql.replace("{{GLOBAL_FILTER}}",
-        GlobalFilterBuilder.build(filterRequest));
-
-return namedParameterJdbcTemplate.query(
-        sql,
-        new BeanPropertyRowMapper<>(UseCaseDashboardDto.class)
-);
-
-
-
-
-
-// dto topcard response 
 
 
 package com.yourcompany.pts.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
+import java.util.List;
+import java.util.Map;
 
 @Data
-@AllArgsConstructor
-public class TopCardResponse {
-    private String label;
-    private Long value;
-}
+public class PtsTopCardsResponse {
 
+    // Top Card 1
+    private List<Map<String, Object>> ragSummary;
 
-// repo layer 
+    // Top Card 2
+    private List<Map<String, Object>> ownershipCategory;
 
-
-// common execution 
-
-private Long executeCountQuery(String sql, GlobalFilterRequest filter) {
-
-    String finalSql = sql.replace(
-            "{{GLOBAL_FILTER}}",
-            GlobalFilterBuilder.build(filter)
-    );
-
-    return namedParameterJdbcTemplate.queryForObject(finalSql, Map.of(), Long.class);
-}
-
-// topcard 1
-
-public Long getTotalUseCases(GlobalFilterRequest filter) {
-
-    String sql = """
-        SELECT COUNT(DISTINCT MS.USE_CASE_NO)
-        FROM ( {{BASE_QUERY}} )
-        WHERE 1=1
-        {{GLOBAL_FILTER}}
-        """;
-
-    return executeCountQuery(sql, filter);
-}
-
-
-// Top 2 
-
-public Long getTotalMilestones(GlobalFilterRequest filter) {
-
-    String sql = """
-        SELECT COUNT(DISTINCT MS.MILESTONE_ID)
-        FROM ( {{BASE_QUERY}} )
-        WHERE 1=1
-        {{GLOBAL_FILTER}}
-        """;
-
-    return executeCountQuery(sql, filter);
-}
-
-
-
-// Top 3 
-
-
-public Long getTotalDeliverables(GlobalFilterRequest filter) {
-
-    String sql = """
-        SELECT COUNT(DISTINCT DEL.WORK_EFFORT_NAME)
-        FROM ( {{BASE_QUERY}} )
-        WHERE 1=1
-        {{GLOBAL_FILTER}}
-        """;
-
-    return executeCountQuery(sql, filter);
-}
-
-
-
-// service layer 
-
-
-@Service
-@RequiredArgsConstructor
-public class TopCardService {
-
-    private final TopCardRepository repository;
-
-    public List<TopCardResponse> getTopCards(GlobalFilterRequest filter) {
-
-        return List.of(
-                new TopCardResponse("Total Use Cases",
-                        repository.getTotalUseCases(filter)),
-
-                new TopCardResponse("Total Milestones",
-                        repository.getTotalMilestones(filter)),
-
-                new TopCardResponse("Total Deliverables",
-                        repository.getTotalDeliverables(filter))
-        );
-    }
+    // Top Card 3
+    private List<Map<String, Object>> yearCategoryRag;
 }
 
 
@@ -263,20 +84,288 @@ public class TopCardService {
 // controller 
 
 
+
+
+package com.yourcompany.pts.controller;
+
+import com.yourcompany.pts.dto.GlobalFilterRequest;
+import com.yourcompany.pts.dto.PtsTopCardsResponse;
+import com.yourcompany.pts.service.PtsTopCardService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
 @RestController
-@RequestMapping("/api/pts/dashboard")
+@RequestMapping("/api/pts/top-cards")
 @RequiredArgsConstructor
-public class TopCardController {
+public class PtsTopCardController {
 
-    private final TopCardService service;
+    private final PtsTopCardService service;
 
-    @PostMapping("/top-cards")
-    public List<TopCardResponse> getTopCards(
-            @RequestBody GlobalFilterRequest filter) {
+    /**
+     * ONE API
+     * All global filters applied to ALL top cards
+     */
+    @PostMapping("/all")
+    public PtsTopCardsResponse getAllTopCards(
+            @RequestBody GlobalFilterRequest filterRequest) {
 
-        return service.getTopCards(filter);
+        return service.getAllTopCards(filterRequest);
     }
 }
+
+
+
+//service layer 
+
+
+
+
+
+package com.yourcompany.pts.service;
+
+import com.yourcompany.pts.dto.GlobalFilterRequest;
+import com.yourcompany.pts.dto.PtsTopCardsResponse;
+
+public interface PtsTopCardService {
+
+    PtsTopCardsResponse getAllTopCards(GlobalFilterRequest filterRequest);
+}
+
+
+//
+
+
+
+
+package com.yourcompany.pts.service.impl;
+
+import com.yourcompany.pts.dto.GlobalFilterRequest;
+import com.yourcompany.pts.dto.PtsTopCardsResponse;
+import com.yourcompany.pts.repository.PtsTopCardRepository;
+import com.yourcompany.pts.service.PtsTopCardService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class PtsTopCardServiceImpl implements PtsTopCardService {
+
+    private final PtsTopCardRepository repository;
+
+    @Override
+    public PtsTopCardsResponse getAllTopCards(GlobalFilterRequest filterRequest) {
+
+        PtsTopCardsResponse response = new PtsTopCardsResponse();
+
+        // ---------- TOP CARD 1 ----------
+        response.setRagSummary(
+                repository.getUseCaseCountByOverallRag(filterRequest)
+        );
+
+        // ---------- TOP CARD 2 ----------
+        response.setOwnershipCategory(
+                repository.getUseCaseCountByOwnershipAndCategory(filterRequest)
+        );
+
+        // ---------- TOP CARD 3 ----------
+        response.setYearCategoryRag(
+                repository.getMilestoneCountByYearCategoryRag(filterRequest)
+        );
+
+        return response;
+    }
+}
+
+
+
+
+
+
+
+
+//repo
+
+
+
+
+package com.yourcompany.pts.repository;
+
+import com.yourcompany.pts.dto.GlobalFilterRequest;
+import com.yourcompany.pts.util.GlobalFilterBuilder;
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Repository
+@RequiredArgsConstructor
+public class PtsTopCardRepository {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    private static final String BASE_WHERE = """
+        FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW
+        WHERE CO_TYPE = 'CO Milestone'
+          AND USE_CASE_NO IS NOT NULL
+          AND PROJECT_OVERALL_RAG_STATUS <> 'NA'
+          AND RAG_STATUS <> 'NA'
+          {{GLOBAL_FILTER}}
+        """;
+
+    // ---------------- TOP CARD 1 ----------------
+    public List<Map<String, Object>> getUseCaseCountByOverallRag(GlobalFilterRequest filter) {
+        String sql = """
+            SELECT PROJECT_OVERALL_RAG_STATUS,
+                   COUNT(DISTINCT USE_CASE_NO) AS useCaseCount
+            """ + BASE_WHERE + """
+            GROUP BY PROJECT_OVERALL_RAG_STATUS
+            """;
+        return execute(sql, filter);
+    }
+
+    // ---------------- TOP CARD 2 ----------------
+    public List<Map<String, Object>> getUseCaseCountByOwnershipAndCategory(GlobalFilterRequest filter) {
+        String sql = """
+            SELECT USE_CASE_OWNERSHIP,
+                   USE_CASE_CATEGORY,
+                   COUNT(DISTINCT USE_CASE_NO) AS useCaseCount
+            """ + BASE_WHERE + """
+            GROUP BY USE_CASE_OWNERSHIP, USE_CASE_CATEGORY
+            ORDER BY 3 DESC, 1, 2
+            """;
+        return execute(sql, filter);
+    }
+
+    // ---------------- TOP CARD 3 ----------------
+    public List<Map<String, Object>> getMilestoneCountByYearCategoryRag(GlobalFilterRequest filter) {
+        String sql = """
+            SELECT SUBSTR(DUE_DATE_YEAR, -2) || '-' || USE_CASE_CATEGORY AS dueYearCategory,
+                   RAG_STATUS,
+                   COUNT(DISTINCT MILESTONE_ID) AS useCaseCount
+            """ + BASE_WHERE + """
+            GROUP BY SUBSTR(DUE_DATE_YEAR, -2) || '-' || USE_CASE_CATEGORY, RAG_STATUS
+            ORDER BY 1
+            """;
+        return execute(sql, filter);
+    }
+
+    // ---------------- COMMON EXECUTOR ----------------
+    private List<Map<String, Object>> execute(String sql, GlobalFilterRequest filter) {
+        String globalFilter = GlobalFilterBuilder.build(filter);
+        sql = sql.replace("{{GLOBAL_FILTER}}", globalFilter);
+
+        Map<String, Object> params = buildParams(filter);
+        return jdbcTemplate.queryForList(sql, params);
+    }
+
+    private Map<String, Object> buildParams(GlobalFilterRequest f) {
+        Map<String, Object> params = new HashMap<>();
+
+        // Use Case
+        params.put("useCaseNo", f.getUseCaseNo());
+        params.put("useCaseOwnership", f.getUseCaseOwnership());
+        params.put("useCaseOwner", f.getUseCaseOwner());
+        params.put("useCaseAccountableExecutive", f.getUseCaseAccountableExecutive());
+        params.put("useCaseCategory", f.getUseCaseRbcmType());
+        params.put("projectOverallRagStatus", f.getUseCaseRagStatus());
+
+        // Owners
+        params.put("smtAccountableExecutive", f.getAccountableExecutive());
+        params.put("milestoneOwner", f.getMilestoneOwner());
+        params.put("deliverableOwner", f.getDeliverableOwner());
+
+        // Timeline
+        params.put("milestoneYear", f.getMilestoneYear());
+        params.put("deliverableYear", f.getDeliverableYear());
+
+        // Work Effort
+        params.put("initiativeName", f.getInitiative());
+        params.put("programName", f.getProgram());
+        params.put("workEffortName", f.getProject());
+        params.put("derivedProgramCategory", f.getProgramCategory());
+
+        // Milestone attributes
+        params.put("occConsentOrderArticle", f.getArticle());
+        params.put("subPortfolioName", f.getSubPortfolio());
+
+        // RAG
+        params.put("milestoneRagStatus", f.getMilestoneRag());
+        params.put("deliverableRagStatus", f.getDeliverableRag());
+
+        return params;
+    }
+}
+
+
+
+
+
+//global filter 
+
+
+
+
+
+package com.yourcompany.pts.util;
+
+import com.yourcompany.pts.dto.GlobalFilterRequest;
+import java.util.List;
+
+public class GlobalFilterBuilder {
+
+    private GlobalFilterBuilder() {}
+
+    public static String build(GlobalFilterRequest f) {
+
+        StringBuilder sb = new StringBuilder();
+
+        // Use Case
+        appendFilter(sb, "USE_CASE_NO", f.getUseCaseNo());
+        appendFilter(sb, "USE_CASE_OWNERSHIP", f.getUseCaseOwnership());
+        appendFilter(sb, "USE_CASE_OWNER", f.getUseCaseOwner());
+        appendFilter(sb, "USE_CASE_ACCOUNTABLE_EXECUTIVE", f.getUseCaseAccountableExecutive());
+        appendFilter(sb, "USE_CASE_CATEGORY", f.getUseCaseRbcmType());
+        appendFilter(sb, "PROJECT_OVERALL_RAG_STATUS", f.getUseCaseRagStatus());
+
+        // Owners
+        appendFilter(sb, "SMT_ACCOUNTABLE_EXECUTIVE", f.getAccountableExecutive());
+        appendFilter(sb, "MILESTONE_OWNER", f.getMilestoneOwner());
+        appendFilter(sb, "DELIVERABLE_OWNER", f.getDeliverableOwner());
+
+        // Timeline
+        appendFilter(sb, "MILESTONE_YEAR", f.getMilestoneYear());
+        appendFilter(sb, "DELIVERABLE_YEAR", f.getDeliverableYear());
+
+        // Work Effort
+        appendFilter(sb, "INITIATIVE_NAME", f.getInitiative());
+        appendFilter(sb, "PROGRAM_NAME", f.getProgram());
+        appendFilter(sb, "WORK_EFFORT_NAME", f.getProject());
+        appendFilter(sb, "DERIVED_PROGRAM_CATEGORY", f.getProgramCategory());
+
+        // Milestone attributes
+        appendFilter(sb, "OCC_CONSENT_ORDER_ARTICLE", f.getArticle());
+        appendFilter(sb, "SUBPORTFOLIO_NAME", f.getSubPortfolio());
+
+        // RAG
+        appendFilter(sb, "MILESTONE_RAG_STATUS", f.getMilestoneRag());
+        appendFilter(sb, "DELIVERABLE_RAG_STATUS", f.getDeliverableRag());
+
+        return sb.toString();
+    }
+
+    private static void appendFilter(StringBuilder sb, String column, List<?> values) {
+        if (values != null && !values.isEmpty()) {
+            sb.append(" AND ").append(column).append(" IN (:").append(column.toLowerCase()).append(")");
+        }
+    }
+}
+
+
+
+
 
 
 
