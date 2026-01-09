@@ -194,5 +194,114 @@ public class PtsDashboardController {
 
 
 
+// new repository 
 
+
+
+
+@Repository
+public class PtsDashboardRepository {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    public PtsDashboardRepository(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    public List<PtsDashboardDto> fetchDashboardData() {
+
+        String sql =
+            "WITH preprocessed_data AS ( " +
+            "  SELECT USE_CASE_NO, USE_CASE_OWNERSHIP, USE_CASE_OWNER, " +
+            "         USE_CASE_ACCOUNTABLE_EXECUTIVE, USE_CASE_CATEGORY, " +
+            "         PROJECT_OVERALL_RAG_STATUS, SMT_ACCOUNTABLE_EXECUTIVE, " +
+            "         DELIVERABLE_OWNER, PROGRAM_NAME, " +
+            "         OCC_CONSENT_ORDER_ARTICLE, SUBPORTFOLIO_NAME, " +
+            "         RAG_STATUS, DUE_DATE, DERIVED_PROGRAM_CATEGORY, " +
+            "         WORK_EFFORT_NAME, INITIATIVE_NAME, " +
+            "         MILESTONE_ID, CO_TYPE " +
+            "  FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW " +
+            "  WHERE USE_CASE_NO IS NOT NULL " +
+            "    AND PROJECT_OVERALL_RAG_STATUS <> 'NA' " +
+            "    AND RAG_STATUS <> 'NA' " +
+            ") " +
+
+            "SELECT " +
+            "  MS.USE_CASE_NO, " +
+            "  MS.USE_CASE_OWNERSHIP, " +
+            "  MS.USE_CASE_OWNER, " +
+            "  MS.USE_CASE_ACCOUNTABLE_EXECUTIVE, " +
+            "  MS.USE_CASE_CATEGORY, " +
+            "  MS.PROJECT_OVERALL_RAG_STATUS, " +
+
+            "  UC.USE_CASE_DUE_DT_YEAR, " +
+            "  UC.USE_CASE_DUE_DT_QTR, " +
+            "  UC.USE_CASE_DUE_DT_MONTH, " +
+
+            "  MS.SMT_ACCOUNTABLE_EXECUTIVE, " +
+            "  MS.MILESTONE_OWNER, " +
+            "  DEL.DELIVERABLE_OWNER, " +
+
+            "  MS.MILESTONE_YEAR, " +
+            "  MS.MILESTONE_QTR, " +
+            "  MS.MILESTONE_MONTH, " +
+
+            "  DEL.DELIVERABLE_YEAR, " +
+            "  DEL.DELIVERABLE_QTR, " +
+            "  DEL.DELIVERABLE_MONTH, " +
+
+            "  DEL.INITIATIVE_NAME, " +
+            "  MS.PROGRAM_NAME, " +
+            "  DEL.WORK_EFFORT_NAME, " +
+            "  DEL.DERIVED_PROGRAM_CATEGORY, " +
+
+            "  MS.OCC_CONSENT_ORDER_ARTICLE, " +
+            "  MS.SUBPORTFOLIO_NAME, " +
+
+            "  MS.MILESTONE_RAG_STATUS, " +
+            "  DEL.DELIVERABLE_RAG_STATUS " +
+
+            "FROM ( " +
+            "  SELECT MILESTONE_ID, DELIVERABLE_OWNER, INITIATIVE_NAME, " +
+            "         WORK_EFFORT_NAME, DERIVED_PROGRAM_CATEGORY, " +
+            "         RAG_STATUS AS DELIVERABLE_RAG_STATUS, " +
+            "         EXTRACT(YEAR FROM DUE_DATE) AS DELIVERABLE_YEAR, " +
+            "         'Q' || TO_CHAR(DUE_DATE, 'Q') || ' ' || TO_CHAR(DUE_DATE, 'YYYY') AS DELIVERABLE_QTR, " +
+            "         TO_CHAR(DUE_DATE, 'Mon YYYY') AS DELIVERABLE_MONTH " +
+            "  FROM preprocessed_data " +
+            "  WHERE CO_TYPE = 'CO Deliverable' " +
+            ") DEL " +
+
+            "LEFT JOIN ( " +
+            "  SELECT MILESTONE_ID, USE_CASE_NO, USE_CASE_OWNERSHIP, " +
+            "         USE_CASE_OWNER, USE_CASE_ACCOUNTABLE_EXECUTIVE, " +
+            "         USE_CASE_CATEGORY, PROJECT_OVERALL_RAG_STATUS, " +
+            "         SMT_ACCOUNTABLE_EXECUTIVE, " +
+            "         DELIVERABLE_OWNER AS MILESTONE_OWNER, " +
+            "         PROGRAM_NAME, OCC_CONSENT_ORDER_ARTICLE, " +
+            "         SUBPORTFOLIO_NAME, " +
+            "         RAG_STATUS AS MILESTONE_RAG_STATUS, " +
+            "         EXTRACT(YEAR FROM DUE_DATE) AS MILESTONE_YEAR, " +
+            "         'Q' || TO_CHAR(DUE_DATE, 'Q') || ' ' || TO_CHAR(DUE_DATE, 'YYYY') AS MILESTONE_QTR, " +
+            "         TO_CHAR(DUE_DATE, 'Mon YYYY') AS MILESTONE_MONTH " +
+            "  FROM preprocessed_data " +
+            "  WHERE CO_TYPE = 'CO Milestone' " +
+            ") MS ON DEL.MILESTONE_ID = MS.MILESTONE_ID " +
+
+            "LEFT JOIN ( " +
+            "  SELECT USE_CASE_NO, " +
+            "         EXTRACT(YEAR FROM DUE_DATE) AS USE_CASE_DUE_DT_YEAR, " +
+            "         'Q' || TO_CHAR(DUE_DATE, 'Q') || ' ' || TO_CHAR(DUE_DATE, 'YYYY') AS USE_CASE_DUE_DT_QTR, " +
+            "         TO_CHAR(DUE_DATE, 'Mon YYYY') AS USE_CASE_DUE_DT_MONTH " +
+            "  FROM preprocessed_data " +
+            "  WHERE CO_TYPE = 'CO Milestone' " +
+            "    AND USE_CASE_CATEGORY = 'End Point Consumption' " +
+            ") UC ON MS.USE_CASE_NO = UC.USE_CASE_NO";
+
+        return jdbcTemplate.query(
+                sql,
+                new BeanPropertyRowMapper<>(PtsDashboardDto.class)
+        );
+    }
+}
 
