@@ -296,3 +296,122 @@ public class GlobalFilterService {
                 .collect(Collectors.toList());
     }
 }
+
+
+
+package com.example.pts.service;
+
+import com.example.pts.dto.*;
+import com.example.pts.repository.GlobalFilterRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class GlobalFilterService {
+
+    private final GlobalFilterRepository repository;
+
+    public GlobalFilterResponse getGlobalFilters() {
+
+        // Fetch base dataset once
+        List<Map<String, Object>> data = repository.fetchBaseData();
+
+        GlobalFilterResponse response = new GlobalFilterResponse();
+
+        /* =======================
+           USE CASE
+           ======================= */
+        UseCaseFilters useCase = new UseCaseFilters();
+        useCase.setUseCaseNo(distinctString(data, "USE_CASE_NO"));
+        useCase.setUseCaseOwnership(distinctString(data, "USE_CASE_OWNERSHIP"));
+        useCase.setUseCaseOwner(distinctString(data, "USE_CASE_OWNER"));
+        useCase.setUseCaseAccountableExecutive(
+                distinctString(data, "USE_CASE_ACCOUNTABLE_EXECUTIVE"));
+        useCase.setUseCaseRbcmType(distinctString(data, "USE_CASE_CATEGORY"));
+        useCase.setUseCaseRagStatus(
+                distinctString(data, "PROJECT_OVERALL_RAG_STATUS"));
+        response.setUseCase(useCase);
+
+        /* =======================
+           OWNER
+           ======================= */
+        OwnerFilters owner = new OwnerFilters();
+        owner.setAccountableExecutive(
+                distinctString(data, "SMT_ACCOUNTABLE_EXECUTIVE"));
+        owner.setMilestoneOwner(distinctString(data, "MILESTONE_OWNER"));
+        owner.setDeliverableOwner(distinctString(data, "DELIVERABLE_OWNER"));
+        response.setOwner(owner);
+
+        /* =======================
+           TIMELINE
+           ======================= */
+        TimelineFilters timeline = new TimelineFilters();
+        timeline.setMilestoneYear(distinctInt(data, "MILESTONE_YEAR"));
+        timeline.setDeliverableYear(distinctInt(data, "DELIVERABLE_YEAR"));
+        response.setTimeline(timeline);
+
+        /* =======================
+           WORK EFFORT
+           ======================= */
+        WorkEffortFilters workEffort = new WorkEffortFilters();
+        workEffort.setInitiative(distinctString(data, "INITIATIVE_NAME"));
+        workEffort.setProgram(distinctString(data, "PROGRAM_NAME"));
+        workEffort.setProject(distinctString(data, "WORK_EFFORT_NAME"));
+        workEffort.setProgramCategory(
+                distinctString(data, "DERIVED_PROGRAM_CATEGORY"));
+        response.setWorkEffort(workEffort);
+
+        /* =======================
+           MILESTONE ATTRIBUTES
+           ======================= */
+        MilestoneAttributesFilters milestoneAttributes =
+                new MilestoneAttributesFilters();
+        milestoneAttributes.setArticle(
+                distinctString(data, "OCC_CONSENT_ORDER_ARTICLE"));
+        milestoneAttributes.setSubPortfolio(
+                distinctString(data, "SUBPORTFOLIO_NAME"));
+        response.setMilestoneAttributes(milestoneAttributes);
+
+        /* =======================
+           RAG STATUS
+           ======================= */
+        RagStatusFilters ragStatus = new RagStatusFilters();
+        ragStatus.setMilestoneRag(
+                distinctString(data, "MILESTONE_RAG_STATUS"));
+        ragStatus.setDeliverableRag(
+                distinctString(data, "DELIVERABLE_RAG_STATUS"));
+        response.setRagStatus(ragStatus);
+
+        return response;
+    }
+
+    /* =======================
+       HELPER METHODS
+       ======================= */
+
+    private List<String> distinctString(List<Map<String, Object>> data, String key) {
+        return data.stream()
+                .map(row -> row.get(key))
+                .filter(Objects::nonNull)
+                .map(Object::toString)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
+    private List<Integer> distinctInt(List<Map<String, Object>> data, String key) {
+        return data.stream()
+                .map(row -> row.get(key))
+                .filter(Objects::nonNull)
+                .map(val -> ((Number) val).intValue())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+    }
+}
