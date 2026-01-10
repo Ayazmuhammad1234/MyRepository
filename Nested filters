@@ -1,1 +1,326 @@
+package com.example.pts.dto;
+
+import lombok.Data;
+
+@Data
+public class GlobalFilterResponse {
+    private Filters filters;
+}
+
+
+
+package com.example.pts.dto;
+
+import lombok.Data;
+
+@Data
+public class Filters {
+    private UseCaseFilters useCase;
+    private OwnerFilters owner;
+    private TimelineFilters timeline;
+    private WorkEffortFilters workEffort;
+    private MilestoneAttributeFilters milestoneAttributes;
+    private RagStatusFilters ragStatus;
+}
+
+
+
+
+package com.example.pts.dto;
+
+import lombok.Data;
+import java.util.List;
+
+@Data
+public class UseCaseFilters {
+    private List<String> useCaseNo;
+    private List<String> useCaseOwnership;
+    private List<String> useCaseOwner;
+    private List<String> useCaseAccountableExecutive;
+    private List<String> useCaseRbcmType;
+    private List<String> useCaseRagStatus;
+}
+
+
+
+
+
+package com.example.pts.dto;
+
+import lombok.Data;
+import java.util.List;
+
+@Data
+public class OwnerFilters {
+    private List<String> accountableExecutive;
+    private List<String> milestoneOwner;
+    private List<String> deliverableOwner;
+}
+
+
+
+
+
+package com.example.pts.dto;
+
+import lombok.Data;
+import java.util.List;
+
+@Data
+public class TimelineFilters {
+    private List<Integer> milestoneYear;
+    private List<Integer> deliverableYear;
+}
+
+
+
+
+
+
+package com.example.pts.dto;
+
+import lombok.Data;
+import java.util.List;
+
+@Data
+public class WorkEffortFilters {
+    private List<String> initiative;
+    private List<String> program;
+    private List<String> project;
+    private List<String> programCategory;
+}
+
+
+
+
+
+
+package com.example.pts.dto;
+
+import lombok.Data;
+import java.util.List;
+
+@Data
+public class MilestoneAttributeFilters {
+    private List<String> article;
+    private List<String> subPortfolio;
+}
+
+
+
+
+
+
+
+package com.example.pts.dto;
+
+import lombok.Data;
+import java.util.List;
+
+@Data
+public class RagStatusFilters {
+    private List<String> milestoneRag;
+    private List<String> deliverableRag;
+}
+
+
+
+
+
+
+
+
+
+package com.example.pts.repository;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Map;
+
+@Repository
+@RequiredArgsConstructor
+public class GlobalFilterRepository {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+private static final String BASE_QUERY = 
+    "WITH preprocessed_data AS ( " +
+    "SELECT USE_CASE_NO, USE_CASE_OWNERSHIP, USE_CASE_OWNER, USE_CASE_ACCOUNTABLE_EXECUTIVE, " +
+    "USE_CASE_CATEGORY, PROJECT_OVERALL_RAG_STATUS, SMT_ACCOUNTABLE_EXECUTIVE, DELIVERABLE_OWNER, " +
+    "PROGRAM_NAME, OCC_CONSENT_ORDER_ARTICLE, SUBPORTFOLIO_NAME, RAG_STATUS, DUE_DATE, " +
+    "DERIVED_PROGRAM_CATEGORY, WORK_EFFORT_NAME, INITIATIVE_NAME, MILESTONE_ID, CO_TYPE " +
+    "FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW " +
+    "WHERE USE_CASE_NO IS NOT NULL " +
+    "AND PROJECT_OVERALL_RAG_STATUS <> 'NA' " +
+    "AND RAG_STATUS <> 'NA' " +
+    ") " +
+    "SELECT MS.USE_CASE_NO, MS.USE_CASE_OWNERSHIP, MS.USE_CASE_OWNER, MS.USE_CASE_ACCOUNTABLE_EXECUTIVE, " +
+    "MS.USE_CASE_CATEGORY, MS.PROJECT_OVERALL_RAG_STATUS, MS.SMT_ACCOUNTABLE_EXECUTIVE, MS.MILESTONE_OWNER, " +
+    "DEL.DELIVERABLE_OWNER, MS.MILESTONE_YEAR, DEL.DELIVERABLE_YEAR, DEL.INITIATIVE_NAME, MS.PROGRAM_NAME, " +
+    "DEL.WORK_EFFORT_NAME, DEL.DERIVED_PROGRAM_CATEGORY, MS.OCC_CONSENT_ORDER_ARTICLE, MS.SUBPORTFOLIO_NAME, " +
+    "MS.MILESTONE_RAG_STATUS, DEL.DELIVERABLE_RAG_STATUS " +
+    "FROM ( " +
+    "SELECT MILESTONE_ID, DELIVERABLE_OWNER, INITIATIVE_NAME, WORK_EFFORT_NAME, DERIVED_PROGRAM_CATEGORY, " +
+    "RAG_STATUS AS DELIVERABLE_RAG_STATUS, EXTRACT(YEAR FROM DUE_DATE) AS DELIVERABLE_YEAR " +
+    "FROM preprocessed_data WHERE CO_TYPE = 'CO Deliverable' " +
+    ") DEL " +
+    "LEFT JOIN ( " +
+    "SELECT MILESTONE_ID, USE_CASE_NO, USE_CASE_OWNERSHIP, USE_CASE_OWNER, USE_CASE_ACCOUNTABLE_EXECUTIVE, " +
+    "USE_CASE_CATEGORY, PROJECT_OVERALL_RAG_STATUS, SMT_ACCOUNTABLE_EXECUTIVE, DELIVERABLE_OWNER AS MILESTONE_OWNER, " +
+    "PROGRAM_NAME, OCC_CONSENT_ORDER_ARTICLE, SUBPORTFOLIO_NAME, RAG_STATUS AS MILESTONE_RAG_STATUS, " +
+    "EXTRACT(YEAR FROM DUE_DATE) AS MILESTONE_YEAR " +
+    "FROM preprocessed_data WHERE CO_TYPE = 'CO Milestone' " +
+    ") MS " +
+    "ON DEL.MILESTONE_ID = MS.MILESTONE_ID";
+
+    private List<String> distinctString(String column) {
+        return jdbcTemplate.queryForList(
+            "SELECT DISTINCT " + column + " FROM (" + BASE_QUERY + ")",
+            Map.of(), String.class);
+    }
+
+    private List<Integer> distinctInt(String column) {
+        return jdbcTemplate.queryForList(
+            "SELECT DISTINCT " + column + " FROM (" + BASE_QUERY + ")",
+            Map.of(), Integer.class);
+    }
+
+    // ===== USE CASE =====
+    public List<String> getUseCaseNo() { return distinctString("USE_CASE_NO"); }
+    public List<String> getUseCaseOwnership() { return distinctString("USE_CASE_OWNERSHIP"); }
+    public List<String> getUseCaseOwner() { return distinctString("USE_CASE_OWNER"); }
+    public List<String> getUseCaseAccountableExecutive() { return distinctString("USE_CASE_ACCOUNTABLE_EXECUTIVE"); }
+    public List<String> getUseCaseRbcmType() { return distinctString("USE_CASE_CATEGORY"); }
+    public List<String> getUseCaseRagStatus() { return distinctString("PROJECT_OVERALL_RAG_STATUS"); }
+
+    // ===== OWNER =====
+    public List<String> getAccountableExecutive() { return distinctString("SMT_ACCOUNTABLE_EXECUTIVE"); }
+    public List<String> getMilestoneOwner() { return distinctString("MILESTONE_OWNER"); }
+    public List<String> getDeliverableOwner() { return distinctString("DELIVERABLE_OWNER"); }
+
+    // ===== TIMELINE =====
+    public List<Integer> getMilestoneYear() { return distinctInt("MILESTONE_YEAR"); }
+    public List<Integer> getDeliverableYear() { return distinctInt("DELIVERABLE_YEAR"); }
+
+    // ===== WORK EFFORT =====
+    public List<String> getInitiative() { return distinctString("INITIATIVE_NAME"); }
+    public List<String> getProgram() { return distinctString("PROGRAM_NAME"); }
+    public List<String> getProject() { return distinctString("WORK_EFFORT_NAME"); }
+    public List<String> getProgramCategory() { return distinctString("DERIVED_PROGRAM_CATEGORY"); }
+
+    // ===== ATTRIBUTES =====
+    public List<String> getArticle() { return distinctString("OCC_CONSENT_ORDER_ARTICLE"); }
+    public List<String> getSubPortfolio() { return distinctString("SUBPORTFOLIO_NAME"); }
+
+    // ===== RAG =====
+    public List<String> getMilestoneRag() { return distinctString("MILESTONE_RAG_STATUS"); }
+    public List<String> getDeliverableRag() { return distinctString("DELIVERABLE_RAG_STATUS"); }
+}
+
+
+
+
+
+
+
+
+
+
+
+package com.example.pts.service;
+
+import com.example.pts.dto.*;
+import com.example.pts.repository.GlobalFilterRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class GlobalFilterService {
+
+    private final GlobalFilterRepository repo;
+
+    public GlobalFilterResponse getGlobalFilters() {
+
+        GlobalFilterResponse response = new GlobalFilterResponse();
+        Filters filters = new Filters();
+
+        UseCaseFilters useCase = new UseCaseFilters();
+        useCase.setUseCaseNo(repo.getUseCaseNo());
+        useCase.setUseCaseOwnership(repo.getUseCaseOwnership());
+        useCase.setUseCaseOwner(repo.getUseCaseOwner());
+        useCase.setUseCaseAccountableExecutive(repo.getUseCaseAccountableExecutive());
+        useCase.setUseCaseRbcmType(repo.getUseCaseRbcmType());
+        useCase.setUseCaseRagStatus(repo.getUseCaseRagStatus());
+
+        OwnerFilters owner = new OwnerFilters();
+        owner.setAccountableExecutive(repo.getAccountableExecutive());
+        owner.setMilestoneOwner(repo.getMilestoneOwner());
+        owner.setDeliverableOwner(repo.getDeliverableOwner());
+
+        TimelineFilters timeline = new TimelineFilters();
+        timeline.setMilestoneYear(repo.getMilestoneYear());
+        timeline.setDeliverableYear(repo.getDeliverableYear());
+
+        WorkEffortFilters workEffort = new WorkEffortFilters();
+        workEffort.setInitiative(repo.getInitiative());
+        workEffort.setProgram(repo.getProgram());
+        workEffort.setProject(repo.getProject());
+        workEffort.setProgramCategory(repo.getProgramCategory());
+
+        MilestoneAttributeFilters milestoneAttributes = new MilestoneAttributeFilters();
+        milestoneAttributes.setArticle(repo.getArticle());
+        milestoneAttributes.setSubPortfolio(repo.getSubPortfolio());
+
+        RagStatusFilters rag = new RagStatusFilters();
+        rag.setMilestoneRag(repo.getMilestoneRag());
+        rag.setDeliverableRag(repo.getDeliverableRag());
+
+        filters.setUseCase(useCase);
+        filters.setOwner(owner);
+        filters.setTimeline(timeline);
+        filters.setWorkEffort(workEffort);
+        filters.setMilestoneAttributes(milestoneAttributes);
+        filters.setRagStatus(rag);
+
+        response.setFilters(filters);
+        return response;
+    }
+}
+
+
+
+
+
+
+package com.example.pts.controller;
+
+import com.example.pts.dto.GlobalFilterResponse;
+import com.example.pts.service.GlobalFilterService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/v1/filters")
+@RequiredArgsConstructor
+public class GlobalFilterController {
+
+    private final GlobalFilterService service;
+
+    @GetMapping("/global")
+    public ResponseEntity<GlobalFilterResponse> getGlobalFilters() {
+        return ResponseEntity.ok(service.getGlobalFilters());
+    }
+}
+
+
+
+
+
+
+
 
