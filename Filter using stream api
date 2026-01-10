@@ -144,4 +144,155 @@ public class GlobalFilterController {
 
 
 
+//new sevice
 
+
+
+
+
+package com.example.pts.service;
+
+import com.example.pts.dto.GlobalFilterResponse;
+import com.example.pts.repository.GlobalFilterRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class GlobalFilterService {
+
+    private final GlobalFilterRepository repository;
+
+    public GlobalFilterResponse getGlobalFilters() {
+
+        // 1️⃣ Fetch base data once
+        List<Map<String, Object>> data = repository.fetchBaseData();
+
+        GlobalFilterResponse response = new GlobalFilterResponse();
+
+        /* =======================
+           1. USE CASE
+           ======================= */
+        response.setUseCaseNo(
+                distinctString(data, "USE_CASE_NO")
+        );
+
+        response.setUseCaseOwnership(
+                distinctString(data, "USE_CASE_OWNERSHIP")
+        );
+
+        response.setUseCaseOwner(
+                distinctString(data, "USE_CASE_OWNER")
+        );
+
+        response.setUseCaseAccountableExecutive(
+                distinctString(data, "USE_CASE_ACCOUNTABLE_EXECUTIVE")
+        );
+
+        response.setUseCaseRbcmType(
+                distinctString(data, "USE_CASE_CATEGORY")
+        );
+
+        response.setUseCaseRagStatus(
+                distinctString(data, "PROJECT_OVERALL_RAG_STATUS")
+        );
+
+        /* =======================
+           2. OWNER
+           ======================= */
+        response.setAccountableExecutive(
+                distinctString(data, "SMT_ACCOUNTABLE_EXECUTIVE")
+        );
+
+        response.setMilestoneOwner(
+                distinctString(data, "MILESTONE_OWNER")
+        );
+
+        response.setDeliverableOwner(
+                distinctString(data, "DELIVERABLE_OWNER")
+        );
+
+        /* =======================
+           3. TIMELINE
+           ======================= */
+        response.setMilestoneYear(
+                distinctInt(data, "MILESTONE_YEAR")
+        );
+
+        response.setDeliverableYear(
+                distinctInt(data, "DELIVERABLE_YEAR")
+        );
+
+        /* =======================
+           4. WORK EFFORT
+           ======================= */
+        response.setInitiative(
+                distinctString(data, "INITIATIVE_NAME")
+        );
+
+        response.setProgram(
+                distinctString(data, "PROGRAM_NAME")
+        );
+
+        response.setProject(
+                distinctString(data, "WORK_EFFORT_NAME")
+        );
+
+        response.setProgramCategory(
+                distinctString(data, "DERIVED_PROGRAM_CATEGORY")
+        );
+
+        /* =======================
+           5. MILESTONE ATTRIBUTES
+           ======================= */
+        response.setArticle(
+                distinctString(data, "OCC_CONSENT_ORDER_ARTICLE")
+        );
+
+        response.setSubPortfolio(
+                distinctString(data, "SUBPORTFOLIO_NAME")
+        );
+
+        /* =======================
+           6. RAG STATUS
+           ======================= */
+        response.setMilestoneRag(
+                distinctString(data, "MILESTONE_RAG_STATUS")
+        );
+
+        response.setDeliverableRag(
+                distinctString(data, "DELIVERABLE_RAG_STATUS")
+        );
+
+        return response;
+    }
+
+    /* =====================================================
+       HELPER METHODS – BUSINESS TRANSFORMATION LOGIC
+       ===================================================== */
+
+    private List<String> distinctString(List<Map<String, Object>> data, String key) {
+        return data.stream()
+                .map(row -> row.get(key))
+                .filter(Objects::nonNull)
+                .map(Object::toString)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
+    private List<Integer> distinctInt(List<Map<String, Object>> data, String key) {
+        return data.stream()
+                .map(row -> row.get(key))
+                .filter(Objects::nonNull)
+                .map(value -> ((Number) value).intValue())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+    }
+}
