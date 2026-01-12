@@ -155,3 +155,135 @@ public class PtsUsecaseController {
         return ResponseEntity.ok(response);
     }
 }
+
+
+
+
+
+
+
+
+
+// card1 
+
+
+
+
+
+
+import lombok.Data;
+
+@Data
+public class RagStatusCountDto {
+
+    private String projectOverallRagStatus;
+    private Long useCaseCount;
+}
+
+
+
+
+
+
+
+
+@Repository
+@RequiredArgsConstructor
+@Slf4j
+public class PtsDashboardRepository {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    public List<RagStatusCountDto> getUseCaseCountByRagStatus(
+            List<String> useCaseOwnership,
+            List<String> useCaseCategory,
+            List<Integer> milestoneYear,
+            List<String> ragStatus) {
+
+        String sql =
+                "SELECT " +
+                "  PROJECT_OVERALL_RAG_STATUS AS projectOverallRagStatus, " +
+                "  COUNT(DISTINCT USE_CASE_NO) AS useCaseCount " +
+                "FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW " +
+                "WHERE CO_TYPE = 'CO Milestone' " +
+                "  AND USE_CASE_NO IS NOT NULL " +
+                "  AND PROJECT_OVERALL_RAG_STATUS <> 'NA' " +
+                "  AND RAG_STATUS <> 'NA' " +
+                "  AND (:useCaseOwnership IS NULL OR USE_CASE_OWNERSHIP IN (:useCaseOwnership)) " +
+                "  AND (:useCaseCategory IS NULL OR USE_CASE_CATEGORY IN (:useCaseCategory)) " +
+                "  AND (:milestoneYear IS NULL OR EXTRACT(YEAR FROM DUE_DATE) IN (:milestoneYear)) " +
+                "  AND (:ragStatus IS NULL OR PROJECT_OVERALL_RAG_STATUS IN (:ragStatus)) " +
+                "GROUP BY PROJECT_OVERALL_RAG_STATUS";
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("useCaseOwnership", useCaseOwnership);
+        params.put("useCaseCategory", useCaseCategory);
+        params.put("milestoneYear", milestoneYear);
+        params.put("ragStatus", ragStatus);
+
+        return jdbcTemplate.query(
+                sql,
+                params,
+                BeanPropertyRowMapper.newInstance(RagStatusCountDto.class)
+        );
+    }
+}
+
+
+
+
+
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class PtsDashboardService {
+
+    private final PtsDashboardRepository repository;
+
+    public List<RagStatusCountDto> getUseCaseCountByRagStatus(
+            List<String> useCaseOwnership,
+            List<String> useCaseCategory,
+            List<Integer> milestoneYear,
+            List<String> ragStatus) {
+
+        log.info("Fetching Use Case count by RAG status");
+        return repository.getUseCaseCountByRagStatus(
+                useCaseOwnership,
+                useCaseCategory,
+                milestoneYear,
+                ragStatus
+        );
+    }
+}
+
+
+
+
+@RestController
+@RequestMapping("/pts")
+@RequiredArgsConstructor
+@Slf4j
+public class PtsUsecaseController {
+
+    private final PtsDashboardService service;
+
+    @GetMapping("/rag-status/count")
+    public ResponseEntity<List<RagStatusCountDto>> getRagStatusCounts(
+            @RequestParam(required = false) List<String> useCaseOwnership,
+            @RequestParam(required = false) List<String> useCaseCategory,
+            @RequestParam(required = false) List<Integer> milestoneYear,
+            @RequestParam(required = false) List<String> ragStatus) {
+
+        log.info("GET /pts/rag-status/count");
+
+        return ResponseEntity.ok(
+                service.getUseCaseCountByRagStatus(
+                        useCaseOwnership,
+                        useCaseCategory,
+                        milestoneYear,
+                        ragStatus
+                )
+        );
+    }
+}
