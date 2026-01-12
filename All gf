@@ -1,0 +1,115 @@
+public class GlobalFilterService {
+
+    private final GlobalFilterRepository repository;
+
+    public List<GlobalFilterRowDto> getGlobalFilters() {
+
+        log.info("Service: Fetching global filters");
+
+        List<GlobalFilterRowDto> data = repository.fetchGlobalFilterData();
+
+        if (data == null || data.isEmpty()) {
+            throw new DataNotFoundException("No global filter data found");
+        }
+
+        return data;
+    }
+}
+
+
+
+@RestController
+@RequestMapping("/pts")
+@Api(tags = "PTS Global Filters")
+@Slf4j
+@RequiredArgsConstructor
+public class GlobalFilterController {
+
+    private final GlobalFilterService service;
+
+    @GetMapping("/global-filters")
+    @ApiOperation("Get all global filters data")
+    @ApiResponses({
+        @ApiResponse(code = 200, message = "Global filters fetched successfully"),
+        @ApiResponse(code = 404, message = "No data found"),
+        @ApiResponse(code = 500, message = "Internal server error")
+    })
+    public ResponseEntity<List<GlobalFilterRowDto>> getGlobalFilters() {
+
+        log.info("Controller: GET /pts/global-filters");
+
+        List<GlobalFilterRowDto> response = service.getGlobalFilters();
+
+        return ResponseEntity.ok(response);
+    }
+}
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
+import java.time.LocalDateTime;
+
+@Data
+@AllArgsConstructor
+public class ErrorResponse {
+
+    private LocalDateTime timestamp;
+    private int status;
+    private String error;
+    private String message;
+    private String path;
+}
+
+
+
+@RestControllerAdvice
+@Slf4j
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(DataNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleDataNotFound(
+            DataNotFoundException ex,
+            HttpServletRequest request) {
+
+        log.warn("Data not found: {}", ex.getMessage());
+
+        return new ResponseEntity<>(
+            new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                "Data Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+            ),
+            HttpStatus.NOT_FOUND
+        );
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGenericException(
+            Exception ex,
+            HttpServletRequest request) {
+
+        log.error("Unhandled exception", ex);
+
+        return new ResponseEntity<>(
+            new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Internal Server Error",
+                ex.getMessage(),
+                request.getRequestURI()
+            ),
+            HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+}
+
+public class DataNotFoundException extends RuntimeException {
+
+    public DataNotFoundException(String message) {
+        super(message);
+    }
+}
