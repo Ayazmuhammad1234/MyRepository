@@ -113,3 +113,45 @@ public class DataNotFoundException extends RuntimeException {
         super(message);
     }
 }
+
+
+
+
+
+
+
+
+
+package com.citi.rock.gwy.api.pts.controller;
+
+import com.citi.rock.gwy.api.pts.dto.GlobalFilterResponseDto;
+import com.citi.rock.gwy.api.pts.service.PtsDashboardService;
+
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/pts")
+@Slf4j
+public class PtsUsecaseController {
+
+    @Autowired
+    private PtsDashboardService service;
+
+    @GetMapping("/getFilters")
+    public ResponseEntity<List<GlobalFilterResponseDto>> getGlobalFilters() {
+
+        log.info("Controller: GET /pts/getFilters");
+
+        List<GlobalFilterResponseDto> response = service.getGlobalFilters();
+
+        return ResponseEntity.ok(response);
+    }
+}
