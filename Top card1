@@ -284,5 +284,100 @@ public class GlobalFilterRequestDto {
 
 
 
+@Service
+public class PtsDashboardService {
+
+    private final PtsDashboardRepository repository;
+
+    public PtsDashboardService(PtsDashboardRepository repository) {
+        this.repository = repository;
+    }
+
+    public PieChartResponseDto getProjectRagStatusPieChart(
+            GlobalFilterRequestDto filter) {
+
+        List<RagStatusCountDto> dbResult =
+                repository.fetchProjectRagStatusCount(filter);
+
+        if (dbResult == null || dbResult.isEmpty()) {
+            throw new DataNotFoundException("No data found for given filters");
+        }
+
+        List<PieChartDataDto> chartData = new ArrayList<PieChartDataDto>();
+
+        for (RagStatusCountDto row : dbResult) {
+
+            if (row.getUseCaseCount() == null || row.getUseCaseCount() == 0) {
+                continue; // ❌ Skip zero count
+            }
+
+            RagStatus status = RagStatus.fromDbValue(
+                    row.getProjectOverallRagStatus()
+            );
+
+            if (status != null) {
+                chartData.add(
+                    new PieChartDataDto(
+                        status.getDisplayName(),
+                        row.getUseCaseCount(),
+                        status.getCssClass()
+                    )
+                );
+            }
+        }
+
+        if (chartData.isEmpty()) {
+            throw new DataNotFoundException("No non-zero data found for chart");
+        }
+
+        PieChartResponseDto response = new PieChartResponseDto();
+        response.setName("Use Cases by RAG Status");
+        response.setType("pie");
+        response.setColorByPoint(true);
+        response.setData(chartData);
+
+        return response;
+    }
+}
+
+
+
+
+
+
+
+
+public enum RagStatus {
+
+    GREEN("Green", "copts-donut-green"),
+    AMBER("Amber", "copts-donut-amber"),
+    RED("Red", "copts-donut-red"),
+    NOT_STARTED("Not Started", "copts-donut-not-started");
+
+    private final String displayName;
+    private final String cssClass;
+
+    RagStatus(String displayName, String cssClass) {
+        this.displayName = displayName;
+        this.cssClass = cssClass;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public String getCssClass() {
+        return cssClass;
+    }
+
+    public static RagStatus fromDbValue(String value) {
+        if (value == null) return null;
+        return RagStatus.valueOf(
+                value.trim().replace(" ", "_").toUpperCase()
+        );
+    }
+}
+
+
 
 
