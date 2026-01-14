@@ -258,3 +258,61 @@ public class FilterQueryBuilder {
     }
 }
 
+
+
+
+
+
+
+
+package com.yourcompany.pts.util;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+
+import java.lang.reflect.Field;
+import java.util.List;
+
+public class FilterQueryBuilder {
+
+    /**
+     * Appends dynamic filters from a DTO to a base SQL query.
+     * Only non-null and non-empty lists are included as IN clauses.
+     * Uses @JsonProperty to get exact column name for SQL.
+     */
+    public static String appendFilters(String baseSql, Object filterDto, MapSqlParameterSource params) {
+        StringBuilder sql = new StringBuilder(baseSql);
+        int index = 0;
+
+        for (Field field : filterDto.getClass().getDeclaredFields()) {
+            field.setAccessible(true);
+            try {
+                Object value = field.get(filterDto);
+
+                if (value instanceof List) {
+                    List<?> list = (List<?>) value;
+                    if (!list.isEmpty()) {
+
+                        // Use @JsonProperty value as column name if present
+                        JsonProperty annotation = field.getAnnotation(JsonProperty.class);
+                        String columnName = (annotation != null) ? annotation.value() : field.getName().toUpperCase();
+
+                        String paramName = field.getName() + index;
+
+                        sql.append(" AND ").append(columnName)
+                           .append(" IN (:").append(paramName).append(")");
+
+                        params.addValue(paramName, list);
+                        index++;
+                    }
+                }
+
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException("Error accessing filter DTO field: " + field.getName(), e);
+            }
+        }
+
+        return sql.toString();
+    }
+}
+
