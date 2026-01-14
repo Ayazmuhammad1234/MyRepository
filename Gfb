@@ -583,3 +583,69 @@ public class RagStatusService {
         return response;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+package com.yourcompany.pts.repository;
+
+import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
+import com.yourcompany.pts.util.GlobalFilterSqlBuilder;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Repository to fetch Use Cases by RAG Status data
+ */
+@Repository
+public class RagStatusRepository {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    public RagStatusRepository(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    /**
+     * Fetch RAG status counts applying global filters
+     *
+     * @param filter Global filter DTO
+     * @return List of maps containing PROJECT_OVERALL_RAG_STATUS and USE_CASE_COUNT
+     */
+    public List<Map<String, Object>> fetchRagStatusCounts(GlobalFilterRequestDto filter) {
+
+        // 1️⃣ Base SQL
+        StringBuilder sql = new StringBuilder(
+            "SELECT PROJECT_OVERALL_RAG_STATUS, " +
+            "COUNT(DISTINCT USE_CASE_NO) AS USE_CASE_COUNT " +
+            "FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW " +
+            "WHERE CO_TYPE = 'CO Milestone' " +
+            "AND USE_CASE_NO IS NOT NULL " +
+            "AND PROJECT_OVERALL_RAG_STATUS <> 'NA' " +
+            "AND RAG_STATUS <> 'NA'"
+        );
+
+        // 2️⃣ Prepare SQL parameters
+        MapSqlParameterSource params = new MapSqlParameterSource();
+
+        // Apply all filters from DTO using util
+        GlobalFilterSqlBuilder.applyAllFilters(sql, params, filter);
+
+        // 3️⃣ Add GROUP BY
+        sql.append(" GROUP BY PROJECT_OVERALL_RAG_STATUS");
+
+        // 4️⃣ Execute query and return results
+        return jdbcTemplate.queryForList(sql.toString(), params);
+    }
+}
