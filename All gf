@@ -287,3 +287,34 @@ public class PtsUsecaseController {
         );
     }
 }
+
+
+
+@Data
+public class GlobalFilterRequestDtoFrontend {
+    private String USE_CASE_OWNERSHIP;
+    private String USE_CASE_OWNER;
+    private String USE_CASE_ACCOUNTABLE_EXECUTIVE;
+    private String USE_CASE_CATEGORY;
+    private String PROJECT_OVERALL_RAG_STATUS;
+    private String USE_CASE_DUE_DT_YEAR;
+    private String USE_CASE_DUE_DT_QTR;
+    private String USE_CASE_DUE_DT_MONTH;
+    private String SMT_ACCOUNTABLE_EXECUTIVE;
+    private String MILESTONE_OWNER;
+    private String DELIVERABLE_OWNER;
+    private String MILESTONE_YEAR;
+    private String MILESTONE_QTR;
+    private String MILESTONE_MONTH;
+    private String DELIVERABLE_YEAR;
+    private String DELIVERABLE_QTR;
+    private String DELIVERABLE_MONTH;
+    private String INITIATIVE_NAME;
+    private String PROGRAM_NAME;
+    private String WORK_EFFORT_NAME;
+    private String DERIVED_PROGRAM_CATEGORY;
+    private String OCC_CONSENT_ORDER_ARTICLE;
+    private String SUBPORTFOLIO_NAME;
+    private String MILESTONE_RAG_STATUS;
+    private String DELIVERABLE_RAG_STATUS;
+}
