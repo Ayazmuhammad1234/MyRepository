@@ -318,3 +318,99 @@ public class GlobalFilterRequestDtoFrontend {
     private String MILESTONE_RAG_STATUS;
     private String DELIVERABLE_RAG_STATUS;
 }
+
+
+
+
+
+
+
+package com.yourcompany.pts.dto.request;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
+import java.util.List;
+
+/**
+ * Global Filter Request DTO
+ * CamelCase fields for Java + JsonProperty for frontend JSON keys
+ */
+@Data
+public class GlobalFilterRequestDto {
+
+    @JsonProperty("USE_CASE_OWNERSHIP")
+    private String useCaseOwnership;
+
+    @JsonProperty("USE_CASE_OWNER")
+    private String useCaseOwner;
+
+    @JsonProperty("USE_CASE_ACCOUNTABLE_EXECUTIVE")
+    private String useCaseAccountableExecutive;
+
+    @JsonProperty("USE_CASE_CATEGORY")
+    private String useCaseCategory;
+
+    @JsonProperty("PROJECT_OVERALL_RAG_STATUS")
+    private String projectOverallRagStatus;
+
+    @JsonProperty("USE_CASE_DUE_DT_YEAR")
+    private String useCaseDueDtYear;
+
+    @JsonProperty("USE_CASE_DUE_DT_QTR")
+    private String useCaseDueDtQtr;
+
+    @JsonProperty("USE_CASE_DUE_DT_MONTH")
+    private String useCaseDueDtMonth;
+
+    @JsonProperty("SMT_ACCOUNTABLE_EXECUTIVE")
+    private String smtAccountableExecutive;
+
+    @JsonProperty("MILESTONE_OWNER")
+    private String milestoneOwner;
+
+    @JsonProperty("DELIVERABLE_OWNER")
+    private String deliverableOwner;
+
+    @JsonProperty("MILESTONE_YEAR")
+    private String milestoneYear;
+
+    @JsonProperty("MILESTONE_QTR")
+    private String milestoneQtr;
+
+    @JsonProperty("MILESTONE_MONTH")
+    private String milestoneMonth;
+
+    @JsonProperty("DELIVERABLE_YEAR")
+    private String deliverableYear;
+
+    @JsonProperty("DELIVERABLE_QTR")
+    private String deliverableQtr;
+
+    @JsonProperty("DELIVERABLE_MONTH")
+    private String deliverableMonth;
+
+    @JsonProperty("INITIATIVE_NAME")
+    private String initiativeName;
+
+    @JsonProperty("PROGRAM_NAME")
+    private String programName;
+
+    @JsonProperty("WORK_EFFORT_NAME")
+    private String workEffortName;
+
+    @JsonProperty("DERIVED_PROGRAM_CATEGORY")
+    private String derivedProgramCategory;
+
+    @JsonProperty("OCC_CONSENT_ORDER_ARTICLE")
+    private String occConsentOrderArticle;
+
+    @JsonProperty("SUBPORTFOLIO_NAME")
+    private String subportfolioName;
+
+    @JsonProperty("MILESTONE_RAG_STATUS")
+    private String milestoneRagStatus;
+
+    @JsonProperty("DELIVERABLE_RAG_STATUS")
+    private String deliverableRagStatus;
+}
+
