@@ -305,3 +305,192 @@ public class PtsDashboardRepository {
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package com.yourcompany.pts.repository;
+
+import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
+import org.springframework.stereotype.Component;
+
+import java.util.*;
+import java.util.function.Function;
+
+@Component
+public class GlobalFilterSqlBuilder {
+
+    private static final Map<String, Function<GlobalFilterRequestDto, List<?>>> FILTER_MAP =
+            new LinkedHashMap<>();
+
+    static {
+        FILTER_MAP.put("USE_CASE_NO", GlobalFilterRequestDto::getUseCaseNo);
+        FILTER_MAP.put("USE_CASE_OWNERSHIP", GlobalFilterRequestDto::getUseCaseOwnership);
+        FILTER_MAP.put("USE_CASE_OWNER", GlobalFilterRequestDto::getUseCaseOwner);
+        FILTER_MAP.put("USE_CASE_ACCOUNTABLE_EXECUTIVE",
+                GlobalFilterRequestDto::getUseCaseAccountableExecutive);
+        FILTER_MAP.put("USE_CASE_CATEGORY", GlobalFilterRequestDto::getUseCaseCategory);
+        FILTER_MAP.put("PROJECT_OVERALL_RAG_STATUS",
+                GlobalFilterRequestDto::getProjectOverallRagStatus);
+
+        FILTER_MAP.put("USE_CASE_DUE_DT_YEAR", GlobalFilterRequestDto::getUseCaseDueDtYear);
+        FILTER_MAP.put("USE_CASE_DUE_DT_QTR", GlobalFilterRequestDto::getUseCaseDueDtQtr);
+        FILTER_MAP.put("USE_CASE_DUE_DT_MONTH", GlobalFilterRequestDto::getUseCaseDueDtMonth);
+
+        FILTER_MAP.put("SMT_ACCOUNTABLE_EXECUTIVE",
+                GlobalFilterRequestDto::getSmtAccountableExecutive);
+        FILTER_MAP.put("MILESTONE_OWNER", GlobalFilterRequestDto::getMilestoneOwner);
+        FILTER_MAP.put("DELIVERABLE_OWNER", GlobalFilterRequestDto::getDeliverableOwner);
+
+        FILTER_MAP.put("MILESTONE_YEAR", GlobalFilterRequestDto::getMilestoneYear);
+        FILTER_MAP.put("MILESTONE_QTR", GlobalFilterRequestDto::getMilestoneQtr);
+        FILTER_MAP.put("MILESTONE_MONTH", GlobalFilterRequestDto::getMilestoneMonth);
+
+        FILTER_MAP.put("DELIVERABLE_YEAR", GlobalFilterRequestDto::getDeliverableYear);
+        FILTER_MAP.put("DELIVERABLE_QTR", GlobalFilterRequestDto::getDeliverableQtr);
+        FILTER_MAP.put("DELIVERABLE_MONTH", GlobalFilterRequestDto::getDeliverableMonth);
+
+        FILTER_MAP.put("INITIATIVE_NAME", GlobalFilterRequestDto::getInitiativeName);
+        FILTER_MAP.put("PROGRAM_NAME", GlobalFilterRequestDto::getProgramName);
+        FILTER_MAP.put("WORK_EFFORT_NAME", GlobalFilterRequestDto::getWorkEffortName);
+        FILTER_MAP.put("DERIVED_PROGRAM_CATEGORY",
+                GlobalFilterRequestDto::getDerivedProgramCategory);
+        FILTER_MAP.put("OCC_CONSENT_ORDER_ARTICLE",
+                GlobalFilterRequestDto::getOccConsentOrderArticle);
+        FILTER_MAP.put("SUBPORTFOLIO_NAME", GlobalFilterRequestDto::getSubportfolioName);
+
+        FILTER_MAP.put("MILESTONE_RAG_STATUS",
+                GlobalFilterRequestDto::getMilestoneRagStatus);
+        FILTER_MAP.put("DELIVERABLE_RAG_STATUS",
+                GlobalFilterRequestDto::getDeliverableRagStatus);
+    }
+
+    public String buildRagStatusQuery(GlobalFilterRequestDto filter,
+                                      Map<String, Object> params) {
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT PROJECT_OVERALL_RAG_STATUS, " +
+                "COUNT(DISTINCT USE_CASE_NO) AS USE_CASE_COUNT " +
+                "FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW " +
+                "WHERE CO_TYPE = 'CO Milestone' " +
+                "AND USE_CASE_NO IS NOT NULL " +
+                "AND PROJECT_OVERALL_RAG_STATUS <> 'NA' " +
+                "AND RAG_STATUS <> 'NA' "
+        );
+
+        for (Map.Entry<String, Function<GlobalFilterRequestDto, List<?>>> entry
+                : FILTER_MAP.entrySet()) {
+
+            List<?> values = entry.getValue().apply(filter);
+
+            if (values != null && !values.isEmpty()) {
+                sql.append(" AND ")
+                   .append(entry.getKey())
+                   .append(" IN (:")
+                   .append(entry.getKey())
+                   .append(")");
+                params.put(entry.getKey(), values);
+            }
+        }
+
+        sql.append(" GROUP BY PROJECT_OVERALL_RAG_STATUS");
+        return sql.toString();
+    }
+}
+
+
+
+
+
+
+
+
+
+
+package com.yourcompany.pts.util;
+
+import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+
+import java.util.List;
+
+public final class GlobalFilterSqlBuilder {
+
+// Private constructor to prevent instantiation  
+private GlobalFilterSqlBuilder() {}  
+
+/**  
+ * Add a single filter with IN clause  
+ */  
+public static <T> void applyInFilter(  
+        StringBuilder sql,  
+        MapSqlParameterSource params,  
+        String columnName,  
+        String paramName,  
+        List<T> values) {  
+
+    if (values != null && !values.isEmpty()) {  
+        sql.append(" AND ")  
+           .append(columnName)  
+           .append(" IN (:")  
+           .append(paramName)  
+           .append(")");  
+        params.addValue(paramName, values);  
+    }  
+}  
+
+/**  
+ * Apply all filters from GlobalFilterRequestDto  
+ */  
+public static void applyAllFilters(  
+        StringBuilder sql,  
+        MapSqlParameterSource params,  
+        GlobalFilterRequestDto filter) {  
+
+    applyInFilter(sql, params, "USE_CASE_NO", "useCaseNo", filter.getUseCaseNo());  
+    applyInFilter(sql, params, "USE_CASE_OWNERSHIP", "useCaseOwnership", filter.getUseCaseOwnership());  
+    applyInFilter(sql, params, "USE_CASE_OWNER", "useCaseOwner", filter.getUseCaseOwner());  
+    applyInFilter(sql, params, "USE_CASE_ACCOUNTABLE_EXECUTIVE", "useCaseAccountableExecutive", filter.getUseCaseAccountableExecutive());  
+    applyInFilter(sql, params, "USE_CASE_CATEGORY", "useCaseCategory", filter.getUseCaseCategory());  
+    applyInFilter(sql, params, "PROJECT_OVERALL_RAG_STATUS", "projectOverallRagStatus", filter.getProjectOverallRagStatus());  
+
+    applyInFilter(sql, params, "USE_CASE_DUE_DT_YEAR", "useCaseDueDtYear", filter.getUseCaseDueDtYear());  
+    applyInFilter(sql, params, "USE_CASE_DUE_DT_QTR", "useCaseDueDtQtr", filter.getUseCaseDueDtQtr());  
+    applyInFilter(sql, params, "USE_CASE_DUE_DT_MONTH", "useCaseDueDtMonth", filter.getUseCaseDueDtMonth());  
+
+    applyInFilter(sql, params, "SMT_ACCOUNTABLE_EXECUTIVE", "smtAccountableExecutive", filter.getSmtAccountableExecutive());  
+    applyInFilter(sql, params, "MILESTONE_OWNER", "milestoneOwner", filter.getMilestoneOwner());  
+    applyInFilter(sql, params, "DELIVERABLE_OWNER", "deliverableOwner", filter.getDeliverableOwner());  
+
+    applyInFilter(sql, params, "MILESTONE_YEAR", "milestoneYear", filter.getMilestoneYear());  
+    applyInFilter(sql, params, "MILESTONE_QTR", "milestoneQtr", filter.getMilestoneQtr());  
+    applyInFilter(sql, params, "MILESTONE_MONTH", "milestoneMonth", filter.getMilestoneMonth());  
+
+    applyInFilter(sql, params, "DELIVERABLE_YEAR", "deliverableYear", filter.getDeliverableYear());  
+    applyInFilter(sql, params, "DELIVERABLE_QTR", "deliverableQtr", filter.getDeliverableQtr());  
+    applyInFilter(sql, params, "DELIVERABLE_MONTH", "deliverableMonth", filter.getDeliverableMonth());  
+
+    applyInFilter(sql, params, "INITIATIVE_NAME", "initiativeName", filter.getInitiativeName());  
+    applyInFilter(sql, params, "PROGRAM_NAME", "programName", filter.getProgramName());  
+    applyInFilter(sql, params, "WORK_EFFORT_NAME", "workEffortName", filter.getWorkEffortName());  
+    applyInFilter(sql, params, "DERIVED_PROGRAM_CATEGORY", "derivedProgramCategory", filter.getDerivedProgramCategory());  
+    applyInFilter(sql, params, "OCC_CONSENT_ORDER_ARTICLE", "occConsentOrderArticle", filter.getOccConsentOrderArticle());  
+    applyInFilter(sql, params, "SUBPORTFOLIO_NAME", "subportfolioName", filter.getSubportfolioName());  
+
+    applyInFilter(sql, params, "MILESTONE_RAG_STATUS", "milestoneRagStatus", filter.getMilestoneRagStatus());  
+    applyInFilter(sql, params, "DELIVERABLE_RAG_STATUS", "deliverableRagStatus", filter.getDeliverableRagStatus());  
+}
+
+}
+
