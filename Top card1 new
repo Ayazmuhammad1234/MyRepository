@@ -1,0 +1,241 @@
+package com.yourcompany.pts.service;
+
+import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
+import com.yourcompany.pts.dto.response.RagStatusDataDto;
+import com.yourcompany.pts.dto.response.RagStatusResponseDto;
+import com.yourcompany.pts.repository.RagStatusRepository;
+import com.yourcompany.pts.sql.GlobalFilterSqlBuilder;
+
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+
+/**
+ * Service for Use Cases by RAG Status pie chart
+ */
+@Service
+public class RagStatusService {
+
+    private final RagStatusRepository ragStatusRepository;
+
+    public RagStatusService(RagStatusRepository ragStatusRepository) {
+        this.ragStatusRepository = ragStatusRepository;
+    }
+
+    /**
+     * Builds pie chart response for Use Cases by RAG Status
+     */
+    public RagStatusResponseDto getRagStatusPie(GlobalFilterRequestDto filterDto) {
+
+        // 1️⃣ Build dynamic global filter SQL
+        Map<String, Object> params = new HashMap<>();
+        String globalFilterSql = GlobalFilterSqlBuilder.build(filterDto, params);
+
+        // 2️⃣ Fetch DB result
+        List<Map<String, Object>> rows =
+                ragStatusRepository.fetchRagStatusCounts(globalFilterSql, params);
+
+        // 3️⃣ Map DB rows → response data
+        List<RagStatusDataDto> data = new ArrayList<>();
+
+        for (Map<String, Object> row : rows) {
+
+            String ragStatus =
+                    (String) row.get("PROJECT_OVERALL_RAG_STATUS");
+
+            Integer count =
+                    ((Number) row.get("USE_CASE_COUNT")).intValue();
+
+            // ✅ Skip zero count
+            if (count == 0) {
+                continue;
+            }
+
+            String className = "copts-donut-" +
+                    ragStatus.toLowerCase().replace(" ", "-");
+
+            data.add(new RagStatusDataDto(
+                    ragStatus,   // name
+                    count,       // y
+                    className    // className
+            ));
+        }
+
+        // 4️⃣ Return final pie chart response
+        return new RagStatusResponseDto(data);
+    }
+}
+
+
+
+
+
+
+package com.yourcompany.pts.dto.response;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ * Pie chart data item
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class RagStatusDataDto {
+
+    private String name;       // PROJECT_OVERALL_RAG_STATUS
+    private Integer y;          // USE_CASE_COUNT
+    private String className;   // copts-donut-{ragstatus}
+}
+
+
+
+
+
+
+package com.yourcompany.pts.dto.response;
+
+import lombok.Data;
+import java.util.List;
+
+/**
+ * Pie chart response for RAG Status
+ */
+@Data
+public class RagStatusResponseDto {
+
+    private String name = "Use Cases by RAG Status";
+    private String type = "pie";
+    private boolean colorByPoint = true;
+    private List<RagStatusDataDto> data;
+
+    public RagStatusResponseDto(List<RagStatusDataDto> data) {
+        this.data = data;
+    }
+}
+
+
+
+
+
+
+
+
+package com.yourcompany.pts.repository;
+
+import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
+import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Component
+public class GlobalFilterSqlBuilder {
+
+    public String buildRagStatusQuery(GlobalFilterRequestDto filter) {
+
+        StringBuilder sql = new StringBuilder("""
+            SELECT
+                PROJECT_OVERALL_RAG_STATUS,
+                COUNT(DISTINCT USE_CASE_NO) AS USE_CASE_COUNT
+            FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW
+            WHERE CO_TYPE = 'CO Milestone'
+              AND USE_CASE_NO IS NOT NULL
+              AND PROJECT_OVERALL_RAG_STATUS <> 'NA'
+              AND RAG_STATUS <> 'NA'
+        """);
+
+        appendInClause(sql, "USE_CASE_NO", filter.getUseCaseNo());
+        appendInClause(sql, "USE_CASE_OWNERSHIP", filter.getUseCaseOwnership());
+        appendInClause(sql, "USE_CASE_OWNER", filter.getUseCaseOwner());
+        appendInClause(sql, "USE_CASE_ACCOUNTABLE_EXECUTIVE", filter.getUseCaseAccountableExecutive());
+        appendInClause(sql, "USE_CASE_CATEGORY", filter.getUseCaseCategory());
+        appendInClause(sql, "PROJECT_OVERALL_RAG_STATUS", filter.getProjectOverallRagStatus());
+
+        appendInClause(sql, "USE_CASE_DUE_DT_YEAR", filter.getUseCaseDueDtYear());
+        appendInClause(sql, "USE_CASE_DUE_DT_QTR", filter.getUseCaseDueDtQtr());
+        appendInClause(sql, "USE_CASE_DUE_DT_MONTH", filter.getUseCaseDueDtMonth());
+
+        appendInClause(sql, "SMT_ACCOUNTABLE_EXECUTIVE", filter.getSmtAccountableExecutive());
+        appendInClause(sql, "MILESTONE_OWNER", filter.getMilestoneOwner());
+        appendInClause(sql, "DELIVERABLE_OWNER", filter.getDeliverableOwner());
+
+        appendInClause(sql, "MILESTONE_YEAR", filter.getMilestoneYear());
+        appendInClause(sql, "MILESTONE_QTR", filter.getMilestoneQtr());
+        appendInClause(sql, "MILESTONE_MONTH", filter.getMilestoneMonth());
+
+        appendInClause(sql, "DELIVERABLE_YEAR", filter.getDeliverableYear());
+        appendInClause(sql, "DELIVERABLE_QTR", filter.getDeliverableQtr());
+        appendInClause(sql, "DELIVERABLE_MONTH", filter.getDeliverableMonth());
+
+        appendInClause(sql, "INITIATIVE_NAME", filter.getInitiativeName());
+        appendInClause(sql, "PROGRAM_NAME", filter.getProgramName());
+        appendInClause(sql, "WORK_EFFORT_NAME", filter.getWorkEffortName());
+        appendInClause(sql, "DERIVED_PROGRAM_CATEGORY", filter.getDerivedProgramCategory());
+        appendInClause(sql, "OCC_CONSENT_ORDER_ARTICLE", filter.getOccConsentOrderArticle());
+        appendInClause(sql, "SUBPORTFOLIO_NAME", filter.getSubportfolioName());
+
+        appendInClause(sql, "MILESTONE_RAG_STATUS", filter.getMilestoneRagStatus());
+        appendInClause(sql, "DELIVERABLE_RAG_STATUS", filter.getDeliverableRagStatus());
+
+        sql.append(" GROUP BY PROJECT_OVERALL_RAG_STATUS");
+
+        return sql.toString();
+    }
+
+    public Map<String, Object> buildParams(GlobalFilterRequestDto filter) {
+
+        Map<String, Object> params = new HashMap<>();
+
+        put(params, "USE_CASE_NO", filter.getUseCaseNo());
+        put(params, "USE_CASE_OWNERSHIP", filter.getUseCaseOwnership());
+        put(params, "USE_CASE_OWNER", filter.getUseCaseOwner());
+        put(params, "USE_CASE_ACCOUNTABLE_EXECUTIVE", filter.getUseCaseAccountableExecutive());
+        put(params, "USE_CASE_CATEGORY", filter.getUseCaseCategory());
+        put(params, "PROJECT_OVERALL_RAG_STATUS", filter.getProjectOverallRagStatus());
+
+        put(params, "USE_CASE_DUE_DT_YEAR", filter.getUseCaseDueDtYear());
+        put(params, "USE_CASE_DUE_DT_QTR", filter.getUseCaseDueDtQtr());
+        put(params, "USE_CASE_DUE_DT_MONTH", filter.getUseCaseDueDtMonth());
+
+        put(params, "SMT_ACCOUNTABLE_EXECUTIVE", filter.getSmtAccountableExecutive());
+        put(params, "MILESTONE_OWNER", filter.getMilestoneOwner());
+        put(params, "DELIVERABLE_OWNER", filter.getDeliverableOwner());
+
+        put(params, "MILESTONE_YEAR", filter.getMilestoneYear());
+        put(params, "MILESTONE_QTR", filter.getMilestoneQtr());
+        put(params, "MILESTONE_MONTH", filter.getMilestoneMonth());
+
+        put(params, "DELIVERABLE_YEAR", filter.getDeliverableYear());
+        put(params, "DELIVERABLE_QTR", filter.getDeliverableQtr());
+        put(params, "DELIVERABLE_MONTH", filter.getDeliverableMonth());
+
+        put(params, "INITIATIVE_NAME", filter.getInitiativeName());
+        put(params, "PROGRAM_NAME", filter.getProgramName());
+        put(params, "WORK_EFFORT_NAME", filter.getWorkEffortName());
+        put(params, "DERIVED_PROGRAM_CATEGORY", filter.getDerivedProgramCategory());
+        put(params, "OCC_CONSENT_ORDER_ARTICLE", filter.getOccConsentOrderArticle());
+        put(params, "SUBPORTFOLIO_NAME", filter.getSubportfolioName());
+
+        put(params, "MILESTONE_RAG_STATUS", filter.getMilestoneRagStatus());
+        put(params, "DELIVERABLE_RAG_STATUS", filter.getDeliverableRagStatus());
+
+        return params;
+    }
+
+    private void appendInClause(StringBuilder sql, String column, List<?> values) {
+        if (values != null && !values.isEmpty()) {
+            sql.append(" AND ").append(column).append(" IN (:").append(column).append(")");
+        }
+    }
+
+    private void put(Map<String, Object> params, String key, List<?> values) {
+        if (values != null && !values.isEmpty()) {
+            params.put(key, values);
+        }
+    }
+}
+
