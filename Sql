@@ -1,0 +1,22 @@
+SELECT
+    PROJECT_OVERALL_RAG_STATUS,
+    COUNT(DISTINCT USE_CASE_NO) AS Use_case_Count
+FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW
+WHERE co_type = 'CO Milestone'
+  AND USE_CASE_NO IS NOT NULL
+  AND PROJECT_OVERALL_RAG_STATUS <> 'NA'
+  AND RAG_STATUS <> 'NA'
+  -- Example: filter on USE_CASE_OWNERSHIP
+  AND USE_CASE_OWNERSHIP IN ('Banking', 'HR')
+  -- Example: filter on USE_CASE_OWNER
+  AND USE_CASE_OWNER IN ('Alice', 'Bob')
+  -- Example: filter on PROJECT_OVERALL_RAG_STATUS
+  AND PROJECT_OVERALL_RAG_STATUS IN ('Red', 'Amber')
+  -- Example: filter on milestone year derived from DUE_DATE
+  AND EXTRACT(YEAR FROM DUE_DATE) IN (2024, 2025)
+  -- Example: filter on milestone quarter
+  AND ('Q' || TO_CHAR(DUE_DATE,'Q') || ' ' || TO_CHAR(DUE_DATE,'YYYY')) IN ('Q1 2025', 'Q2 2025')
+  -- Example: filter on deliverable month
+  AND TO_CHAR(DUE_DATE,'Mon YYYY') IN ('Jan 2025', 'Feb 2025')
+GROUP BY PROJECT_OVERALL_RAG_STATUS
+ORDER BY PROJECT_OVERALL_RAG_STATUS;
