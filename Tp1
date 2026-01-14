@@ -1,0 +1,148 @@
+package com.yourcompany.pts.util;
+
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+
+import java.lang.reflect.Field;
+import java.util.List;
+
+public class FilterQueryBuilder {
+
+    public static String appendFilters(String baseSql, Object filterDto, MapSqlParameterSource params) {
+        StringBuilder sql = new StringBuilder(baseSql);
+        int index = 0;
+
+        for (Field field : filterDto.getClass().getDeclaredFields()) {
+            field.setAccessible(true);
+            try {
+                Object value = field.get(filterDto);
+                if (value instanceof List<?> list && !list.isEmpty()) {
+                    String paramName = field.getName() + index;
+                    sql.append(" AND ").append(field.getName().toUpperCase())
+                       .append(" IN (:").append(paramName).append(")");
+                    params.addValue(paramName, list);
+                    index++;
+                }
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException("Error accessing filter DTO field", e);
+            }
+        }
+
+        return sql.toString();
+    }
+}
+
+
+
+
+
+
+
+package com.yourcompany.pts.controller;
+
+import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
+import com.yourcompany.pts.service.DashboardService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/dashboard")
+public class DashboardController {
+
+    private final DashboardService dashboardService;
+
+    public DashboardController(DashboardService dashboardService) {
+        this.dashboardService = dashboardService;
+    }
+
+    @PostMapping("/rag-status")
+    public ResponseEntity<List<Map<String, Object>>> getRagStatus(
+            @RequestBody GlobalFilterRequestDto filters) {
+        List<Map<String, Object>> result = dashboardService.getRagStatusData(filters);
+        return ResponseEntity.ok(result);
+    }
+}
+
+
+
+
+
+
+package com.yourcompany.pts.repository;
+
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Map;
+
+@Repository
+public class DashboardRepository {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    public DashboardRepository(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    /**
+     * Executes any SQL query with dynamic parameters
+     *
+     * @param sql    SQL query (with named parameters)
+     * @param params Parameter values
+     * @return List of Map<String,Object> results
+     */
+    public List<Map<String, Object>> executeQuery(String sql, MapSqlParameterSource params) {
+        return jdbcTemplate.queryForList(sql, params);
+    }
+}
+
+
+
+package com.yourcompany.pts.service;
+
+import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
+import com.yourcompany.pts.repository.DashboardRepository;
+import com.yourcompany.pts.util.FilterQueryBuilder;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class DashboardService {
+
+    private final DashboardRepository dashboardRepository;
+
+    public DashboardService(DashboardRepository dashboardRepository) {
+        this.dashboardRepository = dashboardRepository;
+    }
+
+    /**
+     * Fetch RAG status counts dynamically based on filters
+     */
+    public List<Map<String, Object>> getRagStatusData(GlobalFilterRequestDto filters) {
+        String baseSql = "SELECT PROJECT_OVERALL_RAG_STATUS, " +
+                         "COUNT(DISTINCT USE_CASE_NO) AS Use_case_Count " +
+                         "FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW " +
+                         "WHERE co_type = 'CO Milestone' " +
+                         "AND USE_CASE_NO IS NOT NULL " +
+                         "AND PROJECT_OVERALL_RAG_STATUS <> 'NA' " +
+                         "AND RAG_STATUS <> 'NA'";
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+
+        // Append filters dynamically
+        String finalSql = FilterQueryBuilder.appendFilters(baseSql, filters, params);
+        finalSql += " GROUP BY PROJECT_OVERALL_RAG_STATUS";
+
+        // Execute query via repository
+        return dashboardRepository.executeQuery(finalSql, params);
+    }
+}
+
+
