@@ -7,6 +7,59 @@ import java.util.List;
 
 public class FilterQueryBuilder {
 
+    /**
+     * Appends dynamic filters from a DTO to a base SQL query.
+     * Only non-null and non-empty lists are included as IN clauses.
+     *
+     * @param baseSql   Base SQL query without filters
+     * @param filterDto DTO containing List filters
+     * @param params    MapSqlParameterSource for parameter binding
+     * @return SQL query with dynamic filters appended
+     */
+    public static String appendFilters(String baseSql, Object filterDto, MapSqlParameterSource params) {
+        StringBuilder sql = new StringBuilder(baseSql);
+        int index = 0;
+
+        // Loop over all fields in DTO
+        for (Field field : filterDto.getClass().getDeclaredFields()) {
+            field.setAccessible(true);
+            try {
+                Object value = field.get(filterDto);
+
+                // Java 11 compatible check for List
+                if (value instanceof List) {
+                    List<?> list = (List<?>) value;
+
+                    if (!list.isEmpty()) {
+                        String paramName = field.getName() + index;
+
+                        // Append filter as "AND COLUMN_NAME IN (:paramName)"
+                        sql.append(" AND ").append(field.getName().toUpperCase())
+                           .append(" IN (:").append(paramName).append(")");
+
+                        // Add the list of values to MapSqlParameterSource
+                        params.addValue(paramName, list);
+
+                        index++;
+                    }
+                }
+
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException("Error accessing filter DTO field: " + field.getName(), e);
+            }
+        }
+
+        return sql.toString();
+    }
+}package com.yourcompany.pts.util;
+
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+
+import java.lang.reflect.Field;
+import java.util.List;
+
+public class FilterQueryBuilder {
+
     public static String appendFilters(String baseSql, Object filterDto, MapSqlParameterSource params) {
         StringBuilder sql = new StringBuilder(baseSql);
         int index = 0;
@@ -145,4 +198,63 @@ public class DashboardService {
     }
 }
 
+
+
+
+
+
+package com.yourcompany.pts.util;
+
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+
+import java.lang.reflect.Field;
+import java.util.List;
+
+public class FilterQueryBuilder {
+
+    /**
+     * Appends dynamic filters from a DTO to a base SQL query.
+     * Only non-null and non-empty lists are included as IN clauses.
+     *
+     * @param baseSql   Base SQL query without filters
+     * @param filterDto DTO containing List filters
+     * @param params    MapSqlParameterSource for parameter binding
+     * @return SQL query with dynamic filters appended
+     */
+    public static String appendFilters(String baseSql, Object filterDto, MapSqlParameterSource params) {
+        StringBuilder sql = new StringBuilder(baseSql);
+        int index = 0;
+
+        // Loop over all fields in DTO
+        for (Field field : filterDto.getClass().getDeclaredFields()) {
+            field.setAccessible(true);
+            try {
+                Object value = field.get(filterDto);
+
+                // Java 11 compatible check for List
+                if (value instanceof List) {
+                    List<?> list = (List<?>) value;
+
+                    if (!list.isEmpty()) {
+                        String paramName = field.getName() + index;
+
+                        // Append filter as "AND COLUMN_NAME IN (:paramName)"
+                        sql.append(" AND ").append(field.getName().toUpperCase())
+                           .append(" IN (:").append(paramName).append(")");
+
+                        // Add the list of values to MapSqlParameterSource
+                        params.addValue(paramName, list);
+
+                        index++;
+                    }
+                }
+
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException("Error accessing filter DTO field: " + field.getName(), e);
+            }
+        }
+
+        return sql.toString();
+    }
+}
 
