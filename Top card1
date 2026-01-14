@@ -1,0 +1,288 @@
+@RestController
+@RequestMapping("/api/pts-dashboard")
+public class PtsDashboardController {
+
+    private final PtsDashboardService service;
+
+    public PtsDashboardController(PtsDashboardService service) {
+        this.service = service;
+    }
+
+    @PostMapping("/top-card/project-rag-status")
+    public ResponseEntity<List<RagStatusCountDto>> getProjectRagStatusCount(
+            @RequestBody GlobalFilterRequestDto filter) {
+
+        List<RagStatusCountDto> response =
+                service.getProjectRagStatusCount(filter);
+
+        return ResponseEntity.ok(response);
+    }
+}
+
+
+
+@Service
+public class PtsDashboardService {
+
+    private final PtsDashboardRepository repository;
+
+    public PtsDashboardService(PtsDashboardRepository repository) {
+        this.repository = repository;
+    }
+
+    public List<RagStatusCountDto> getProjectRagStatusCount(
+            GlobalFilterRequestDto filter) {
+
+        if (filter == null) {
+            throw new BadRequestException("Global filter request cannot be null");
+        }
+
+        List<RagStatusCountDto> result =
+                repository.fetchProjectRagStatusCount(filter);
+
+        if (result == null || result.isEmpty()) {
+            throw new DataNotFoundException("No data found for given filters");
+        }
+
+        return result;
+    }
+}
+
+
+
+
+
+
+
+public class BadRequestException extends RuntimeException {
+
+    public BadRequestException(String message) {
+        super(message);
+    }
+}
+
+
+
+
+public class DataNotFoundException extends RuntimeException {
+
+    public DataNotFoundException(String message) {
+        super(message);
+    }
+}
+
+
+
+
+
+
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ApiErrorResponse> handleBadRequest(
+            BadRequestException ex) {
+
+        ApiErrorResponse error = new ApiErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage()
+        );
+
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(DataNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleDataNotFound(
+            DataNotFoundException ex) {
+
+        ApiErrorResponse error = new ApiErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                ex.getMessage()
+        );
+
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiErrorResponse> handleGenericException(
+            Exception ex) {
+
+        ApiErrorResponse error = new ApiErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Internal server error"
+        );
+
+        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+}
+
+
+
+
+
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
+@Data
+@AllArgsConstructor
+public class ApiErrorResponse {
+    private int status;
+    private String message;
+}
+
+
+
+
+
+@Repository
+public class PtsDashboardRepository {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    public PtsDashboardRepository(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    public List<RagStatusCountDto> fetchProjectRagStatusCount(
+            GlobalFilterRequestDto filter) {
+
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT ");
+        sql.append("PROJECT_OVERALL_RAG_STATUS, ");
+        sql.append("COUNT(DISTINCT USE_CASE_NO) AS use_case_count ");
+        sql.append("FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW ");
+        sql.append("WHERE CO_TYPE = 'CO Milestone' ");
+        sql.append("AND USE_CASE_NO IS NOT NULL ");
+        sql.append("AND PROJECT_OVERALL_RAG_STATUS <> 'NA' ");
+        sql.append("AND RAG_STATUS <> 'NA' ");
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+
+        GlobalFilterSqlBuilder.applyAllFilters(sql, params, filter);
+
+        sql.append(" GROUP BY PROJECT_OVERALL_RAG_STATUS");
+
+        return jdbcTemplate.query(
+                sql.toString(),
+                params,
+                (rs, rowNum) -> new RagStatusCountDto(
+                        rs.getString("PROJECT_OVERALL_RAG_STATUS"),
+                        rs.getInt("use_case_count")
+                )
+        );
+    }
+}
+
+
+
+
+
+
+
+import java.util.List;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+
+public final class GlobalFilterSqlBuilder {
+
+    private GlobalFilterSqlBuilder() {}
+
+    public static <T> void applyInFilter(
+            StringBuilder sql,
+            MapSqlParameterSource params,
+            String columnName,
+            String paramName,
+            List<T> values) {
+
+        if (values != null && !values.isEmpty()) {
+            sql.append(" AND ")
+               .append(columnName)
+               .append(" IN (:")
+               .append(paramName)
+               .append(")");
+            params.addValue(paramName, values);
+        }
+    }
+
+    public static void applyAllFilters(
+            StringBuilder sql,
+            MapSqlParameterSource params,
+            GlobalFilterRequestDto f) {
+
+        applyInFilter(sql, params, "USE_CASE_NO", "useCaseNo", f.getUseCaseNo());
+        applyInFilter(sql, params, "USE_CASE_OWNERSHIP", "useCaseOwnership", f.getUseCaseOwnership());
+        applyInFilter(sql, params, "USE_CASE_OWNER", "useCaseOwner", f.getUseCaseOwner());
+        applyInFilter(sql, params, "USE_CASE_CATEGORY", "useCaseCategory", f.getUseCaseCategory());
+        applyInFilter(sql, params, "PROGRAM_NAME", "programName", f.getProgramName());
+
+        applyInFilter(sql, params, "MILESTONE_YEAR", "milestoneYear", f.getMilestoneYear());
+        applyInFilter(sql, params, "MILESTONE_QTR", "milestoneQtr", f.getMilestoneQtr());
+        applyInFilter(sql, params, "MILESTONE_MONTH", "milestoneMonth", f.getMilestoneMonth());
+
+        applyInFilter(sql, params, "DELIVERABLE_YEAR", "deliverableYear", f.getDeliverableYear());
+        applyInFilter(sql, params, "DELIVERABLE_QTR", "deliverableQtr", f.getDeliverableQtr());
+        applyInFilter(sql, params, "DELIVERABLE_MONTH", "deliverableMonth", f.getDeliverableMonth());
+
+        applyInFilter(sql, params, "MILESTONE_RAG_STATUS", "milestoneRagStatus", f.getMilestoneRagStatus());
+        applyInFilter(sql, params, "DELIVERABLE_RAG_STATUS", "deliverableRagStatus", f.getDeliverableRagStatus());
+    }
+}
+
+
+
+
+
+
+
+import lombok.Data;
+import java.util.List;
+
+@Data
+public class GlobalFilterRequestDto {
+
+    private List<String> useCaseNo;
+    private List<String> useCaseOwnership;
+    private List<String> useCaseOwner;
+    private List<String> useCaseAccountableExecutive;
+    private List<String> useCaseCategory;
+    private List<String> projectOverallRagStatus;
+
+    private List<Integer> useCaseDueDtYear;
+    private List<String> useCaseDueDtQtr;
+    private List<String> useCaseDueDtMonth;
+
+    private List<String> smtAccountableExecutive;
+    private List<String> milestoneOwner;
+    private List<String> deliverableOwner;
+
+    private List<Integer> milestoneYear;
+    private List<String> milestoneQtr;
+    private List<String> milestoneMonth;
+
+    private List<Integer> deliverableYear;
+    private List<String> deliverableQtr;
+    private List<String> deliverableMonth;
+
+    private List<String> initiativeName;
+    private List<String> programName;
+    private List<String> workEffortName;
+    private List<String> derivedProgramCategory;
+    private List<String> occConsentOrderArticle;
+    private List<String> subportfolioName;
+
+    private List<String> milestoneRagStatus;
+    private List<String> deliverableRagStatus;
+}
+
+
+
+
+
+
+
+
+
+
+
