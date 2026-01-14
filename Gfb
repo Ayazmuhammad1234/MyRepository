@@ -494,3 +494,92 @@ public static void applyAllFilters(
 
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+package com.yourcompany.pts.service;
+
+import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
+import com.yourcompany.pts.dto.response.RagStatusDataDto;
+import com.yourcompany.pts.dto.response.RagStatusResponseDto;
+import com.yourcompany.pts.repository.RagStatusRepository;
+import com.yourcompany.pts.util.GlobalFilterSqlBuilder;
+
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+
+/**
+ * Service for Use Cases by RAG Status pie chart
+ */
+@Service
+public class RagStatusService {
+
+    private final RagStatusRepository ragStatusRepository;
+
+    public RagStatusService(RagStatusRepository ragStatusRepository) {
+        this.ragStatusRepository = ragStatusRepository;
+    }
+
+    /**
+     * Builds pie chart response for Use Cases by RAG Status
+     */
+    public RagStatusResponseDto getRagStatusPie(GlobalFilterRequestDto filterDto) {
+
+        // 1️⃣ Prepare SQL and parameters
+        StringBuilder sql = new StringBuilder(
+            "SELECT PROJECT_OVERALL_RAG_STATUS, " +
+            "COUNT(DISTINCT USE_CASE_NO) AS USE_CASE_COUNT " +
+            "FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW " +
+            "WHERE CO_TYPE = 'CO Milestone' " +
+            "AND USE_CASE_NO IS NOT NULL " +
+            "AND PROJECT_OVERALL_RAG_STATUS <> 'NA' " +
+            "AND RAG_STATUS <> 'NA'"
+        );
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+
+        // Apply all filters from request DTO
+        GlobalFilterSqlBuilder.applyAllFilters(sql, params, filterDto);
+
+        // 2️⃣ Fetch DB result using repository
+        List<Map<String, Object>> rows =
+                ragStatusRepository.fetchRagStatusCounts(sql.toString(), params);
+
+        // 3️⃣ Map DB rows → response data
+        List<RagStatusDataDto> data = new ArrayList<>();
+
+        for (Map<String, Object> row : rows) {
+
+            String ragStatus = (String) row.get("PROJECT_OVERALL_RAG_STATUS");
+            Integer count = ((Number) row.get("USE_CASE_COUNT")).intValue();
+
+            // Skip zero counts
+            if (count == null || count == 0) continue;
+
+            String className = "copts-donut-" + ragStatus.toLowerCase().replace(" ", "-");
+
+            data.add(new RagStatusDataDto(ragStatus, count, className));
+        }
+
+        // 4️⃣ Return final pie chart response
+        RagStatusResponseDto response = new RagStatusResponseDto();
+        response.setName("Use Cases by RAG Status");
+        response.setType("pie");
+        response.setColorByPoint(true);
+        response.setData(data);
+
+        return response;
+    }
+}
