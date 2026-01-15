@@ -478,5 +478,157 @@ public class GlobalFilterRequestDto {
 }
 
 
+// gf
 
+
+
+
+
+package com.yourcompany.pts.util;
+
+import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+
+import java.util.Collection;
+
+public final class GlobalFilterSqlBuilder {
+
+    private GlobalFilterSqlBuilder() {}
+
+    public static void applyGlobalFilters(
+            StringBuilder sql,
+            MapSqlParameterSource params,
+            GlobalFilterRequestDto req
+    ) {
+
+        /* ========== BASIC FILTERS ========== */
+
+        addInFilter(sql, params, "USE_CASE_NO", "USE_CASE_NO", req.getUseCaseNo());
+        addInFilter(sql, params, "USE_CASE_OWNERSHIP", "USE_CASE_OWNERSHIP", req.getUseCaseOwnership());
+        addInFilter(sql, params, "USE_CASE_OWNER", "USE_CASE_OWNER", req.getUseCaseOwner());
+        addInFilter(sql, params, "USE_CASE_ACCOUNTABLE_EXECUTIVE",
+                "USE_CASE_ACCOUNTABLE_EXECUTIVE", req.getUseCaseAccountableExecutive());
+        addInFilter(sql, params, "USE_CASE_CATEGORY", "USE_CASE_CATEGORY", req.getUseCaseCategory());
+        addInFilter(sql, params, "PROJECT_OVERALL_RAG_STATUS",
+                "PROJECT_OVERALL_RAG_STATUS", req.getProjectOverallRagStatus());
+        addInFilter(sql, params, "SMT_ACCOUNTABLE_EXECUTIVE",
+                "SMT_ACCOUNTABLE_EXECUTIVE", req.getSmtAccountableExecutive());
+        addInFilter(sql, params, "PROGRAM_NAME", "PROGRAM_NAME", req.getProgramName());
+        addInFilter(sql, params, "WORK_EFFORT_NAME", "WORK_EFFORT_NAME", req.getWorkEffortName());
+        addInFilter(sql, params, "DERIVED_PROGRAM_CATEGORY",
+                "DERIVED_PROGRAM_CATEGORY", req.getDerivedProgramCategory());
+        addInFilter(sql, params, "OCC_CONSENT_ORDER_ARTICLE",
+                "OCC_CONSENT_ORDER_ARTICLE", req.getOccConsentOrderArticle());
+        addInFilter(sql, params, "SUBPORTFOLIO_NAME",
+                "SUBPORTFOLIO_NAME", req.getSubportfolioName());
+
+        /* ========== MILESTONE FILTERS ========== */
+
+        addCoTypeYearFilter(sql, params, "CO Milestone",
+                "MILESTONE_YEAR", req.getMilestoneYear());
+
+        addCoTypeQuarterFilter(sql, params, "CO Milestone",
+                "MILESTONE_QTR", req.getMilestoneQtr());
+
+        addCoTypeMonthFilter(sql, params, "CO Milestone",
+                "MILESTONE_MONTH", req.getMilestoneMonth());
+
+        addInFilterWithCoType(sql, params, "RAG_STATUS",
+                "MILESTONE_RAG_STATUS", "CO Milestone",
+                req.getMilestoneRagStatus());
+
+        /* ========== DELIVERABLE FILTERS ========== */
+
+        addCoTypeYearFilter(sql, params, "CO Deliverable",
+                "DELIVERABLE_YEAR", req.getDeliverableYear());
+
+        addCoTypeQuarterFilter(sql, params, "CO Deliverable",
+                "DELIVERABLE_QTR", req.getDeliverableQtr());
+
+        addCoTypeMonthFilter(sql, params, "CO Deliverable",
+                "DELIVERABLE_MONTH", req.getDeliverableMonth());
+
+        addInFilterWithCoType(sql, params, "RAG_STATUS",
+                "DELIVERABLE_RAG_STATUS", "CO Deliverable",
+                req.getDeliverableRagStatus());
+
+        /* ========== USE CASE DUE DATE FILTERS ========== */
+
+        addCoTypeYearFilter(sql, params, "CO Milestone",
+                "USE_CASE_DUE_DT_YEAR", req.getUseCaseDueDtYear());
+
+        addCoTypeQuarterFilter(sql, params, "CO Milestone",
+                "USE_CASE_DUE_DT_QTR", req.getUseCaseDueDtQtr());
+
+        addCoTypeMonthFilter(sql, params, "CO Milestone",
+                "USE_CASE_DUE_DT_MONTH", req.getUseCaseDueDtMonth());
+    }
+
+    /* ================= HELPER METHODS ================= */
+
+    private static void addInFilter(StringBuilder sql,
+                                    MapSqlParameterSource params,
+                                    String column,
+                                    String param,
+                                    Collection<?> values) {
+        if (values != null && !values.isEmpty()) {
+            sql.append(" AND ").append(column)
+               .append(" IN (:").append(param).append(")");
+            params.addValue(param, values);
+        }
+    }
+
+    private static void addInFilterWithCoType(StringBuilder sql,
+                                              MapSqlParameterSource params,
+                                              String column,
+                                              String param,
+                                              String coType,
+                                              Collection<?> values) {
+        if (values != null && !values.isEmpty()) {
+            sql.append(" AND CO_TYPE = '").append(coType).append("'")
+               .append(" AND ").append(column)
+               .append(" IN (:").append(param).append(")");
+            params.addValue(param, values);
+        }
+    }
+
+    private static void addCoTypeYearFilter(StringBuilder sql,
+                                            MapSqlParameterSource params,
+                                            String coType,
+                                            String param,
+                                            Collection<?> values) {
+        if (values != null && !values.isEmpty()) {
+            sql.append(" AND CO_TYPE = '").append(coType).append("'")
+               .append(" AND EXTRACT(YEAR FROM DUE_DATE)")
+               .append(" IN (:").append(param).append(")");
+            params.addValue(param, values);
+        }
+    }
+
+    private static void addCoTypeQuarterFilter(StringBuilder sql,
+                                               MapSqlParameterSource params,
+                                               String coType,
+                                               String param,
+                                               Collection<?> values) {
+        if (values != null && !values.isEmpty()) {
+            sql.append(" AND CO_TYPE = '").append(coType).append("'")
+               .append(" AND ('Q' || TO_CHAR(DUE_DATE,'Q') || ' ' || TO_CHAR(DUE_DATE,'YYYY'))")
+               .append(" IN (:").append(param).append(")");
+            params.addValue(param, values);
+        }
+    }
+
+    private static void addCoTypeMonthFilter(StringBuilder sql,
+                                             MapSqlParameterSource params,
+                                             String coType,
+                                             String param,
+                                             Collection<?> values) {
+        if (values != null && !values.isEmpty()) {
+            sql.append(" AND CO_TYPE = '").append(coType).append("'")
+               .append(" AND TO_CHAR(DUE_DATE,'Mon YYYY')")
+               .append(" IN (:").append(param).append(")");
+            params.addValue(param, values);
+        }
+    }
+}
 
