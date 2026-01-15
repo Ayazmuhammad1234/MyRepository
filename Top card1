@@ -1,171 +1,40 @@
 package com.yourcompany.pts.controller;
 
 import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
-import com.yourcompany.pts.dto.response.PieChartResponseDto;
-import com.yourcompany.pts.service.PtsDashboardService;
-
-import org.springframework.http.HttpStatus;
+import com.yourcompany.pts.dto.response.RagStatusDataDto;
+import com.yourcompany.pts.service.RagStatusService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
-@RequestMapping("/api/pts/dashboard")
-public class PtsDashboardController {
+@RequestMapping("/api/dashboard")
+public class RagStatusController {
 
-    private final PtsDashboardService dashboardService;
+    private final RagStatusService ragStatusService;
 
-    public PtsDashboardController(PtsDashboardService dashboardService) {
-        this.dashboardService = dashboardService;
+    public RagStatusController(RagStatusService ragStatusService) {
+        this.ragStatusService = ragStatusService;
     }
 
     /**
-     * Project Overall RAG Status Pie Chart
+     * Fetch Use Case count grouped by Project Overall RAG Status
+     * Supports all global filters (optional / multi-select)
      */
-    @PostMapping("/use-cases-by-rag-status")
-    public ResponseEntity<PieChartResponseDto> getUseCasesByRagStatus(
-            @RequestBody GlobalFilterRequestDto filterRequest) {
+    @PostMapping("/rag-status")
+    public ResponseEntity<List<RagStatusDataDto>> getRagStatus(
+            @RequestBody(required = false) GlobalFilterRequestDto request) {
 
-        PieChartResponseDto response =
-                dashboardService.getProjectRagStatusPieChart(filterRequest);
-
-        return new ResponseEntity<PieChartResponseDto>(response, HttpStatus.OK);
-    }
-}
-
-
-
-
-package com.yourcompany.pts.service;
-
-import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
-import com.yourcompany.pts.dto.response.PieChartDataDto;
-import com.yourcompany.pts.dto.response.PieChartResponseDto;
-import com.yourcompany.pts.dto.response.RagStatusCountDto;
-import com.yourcompany.pts.enums.RagStatus;
-import com.yourcompany.pts.exception.DataNotFoundException;
-import com.yourcompany.pts.repository.PtsDashboardRepository;
-
-import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
-
-@Service
-public class PtsDashboardService {
-
-    private final PtsDashboardRepository repository;
-
-    public PtsDashboardService(PtsDashboardRepository repository) {
-        this.repository = repository;
-    }
-
-    /**
-     * Business logic for Project Overall RAG Status Pie Chart
-     */
-    public PieChartResponseDto getProjectRagStatusPieChart(
-            GlobalFilterRequestDto filterRequest) {
-
-        List<RagStatusCountDto> dbResult =
-                repository.fetchProjectRagStatusCount(filterRequest);
-
-        if (dbResult == null || dbResult.isEmpty()) {
-            throw new DataNotFoundException("No data found for given filters");
+        // If frontend sends empty body
+        if (request == null) {
+            request = new GlobalFilterRequestDto();
         }
 
-        List<PieChartDataDto> data = new ArrayList<PieChartDataDto>();
+        List<RagStatusDataDto> response =
+                ragStatusService.fetchRagStatus(request);
 
-        for (RagStatusCountDto row : dbResult) {
-
-            // Rule: Skip zero or null counts
-            if (row.getUseCaseCount() == null || row.getUseCaseCount() == 0) {
-                continue;
-            }
-
-            RagStatus ragStatus =
-                    RagStatus.fromDbValue(row.getProjectOverallRagStatus());
-
-            if (ragStatus != null) {
-                data.add(
-                    new PieChartDataDto(
-                        ragStatus.getDisplayName(),
-                        row.getUseCaseCount(),
-                        ragStatus.getCssClass()
-                    )
-                );
-            }
-        }
-
-        if (data.isEmpty()) {
-            throw new DataNotFoundException("No non-zero RAG data available");
-        }
-
-        PieChartResponseDto response = new PieChartResponseDto();
-        response.setName("Use Cases by RAG Status");
-        response.setType("pie");
-        response.setColorByPoint(true);
-        response.setData(data);
-
-        return response;
-    }
-}
-
-
-
-
-
-package com.yourcompany.pts.repository;
-
-import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
-import com.yourcompany.pts.dto.response.RagStatusCountDto;
-import com.yourcompany.pts.util.GlobalFilterSqlBuilder;
-
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Repository;
-
-import java.util.List;
-
-@Repository
-public class PtsDashboardRepository {
-
-    private final NamedParameterJdbcTemplate jdbcTemplate;
-
-    public PtsDashboardRepository(NamedParameterJdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
-
-    /**
-     * Fetch project RAG status counts based on global filters
-     */
-    public List<RagStatusCountDto> fetchProjectRagStatusCount(
-            GlobalFilterRequestDto filter) {
-
-        StringBuilder sql = new StringBuilder();
-        sql.append("SELECT PROJECT_OVERALL_RAG_STATUS, ");
-        sql.append("COUNT(DISTINCT USE_CASE_NO) AS USE_CASE_COUNT ");
-        sql.append("FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW ");
-        sql.append("WHERE CO_TYPE = 'CO Milestone' ");
-        sql.append("AND USE_CASE_NO IS NOT NULL ");
-        sql.append("AND PROJECT_OVERALL_RAG_STATUS <> 'NA' ");
-        sql.append("AND RAG_STATUS <> 'NA' ");
-
-        // Map for parameters
-        MapSqlParameterSource params = new MapSqlParameterSource();
-
-        // Apply all filters dynamically
-        GlobalFilterSqlBuilder.applyAllFilters(sql, params, filter);
-
-        // Group by RAG
-        sql.append(" GROUP BY PROJECT_OVERALL_RAG_STATUS");
-
-        return jdbcTemplate.query(
-                sql.toString(),
-                params,
-                (rs, rowNum) -> new RagStatusCountDto(
-                        rs.getString("PROJECT_OVERALL_RAG_STATUS"),
-                        rs.getInt("USE_CASE_COUNT")
-                )
-        );
+        return ResponseEntity.ok(response);
     }
 }
 
@@ -179,282 +48,7 @@ public class PtsDashboardRepository {
 
 
 
-
-
-package com.yourcompany.pts.util;
-
-import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-
-import java.util.List;
-
-public final class GlobalFilterSqlBuilder {
-
-    // Private constructor to prevent instantiation
-    private GlobalFilterSqlBuilder() {}
-
-    /**
-     * Add a single filter with IN clause
-     */
-    public static <T> void applyInFilter(
-            StringBuilder sql,
-            MapSqlParameterSource params,
-            String columnName,
-            String paramName,
-            List<T> values) {
-
-        if (values != null && !values.isEmpty()) {
-            sql.append(" AND ")
-               .append(columnName)
-               .append(" IN (:")
-               .append(paramName)
-               .append(")");
-            params.addValue(paramName, values);
-        }
-    }
-
-    /**
-     * Apply all filters from GlobalFilterRequestDto
-     */
-    public static void applyAllFilters(
-            StringBuilder sql,
-            MapSqlParameterSource params,
-            GlobalFilterRequestDto filter) {
-
-        applyInFilter(sql, params, "USE_CASE_NO", "useCaseNo", filter.getUseCaseNo());
-        applyInFilter(sql, params, "USE_CASE_OWNERSHIP", "useCaseOwnership", filter.getUseCaseOwnership());
-        applyInFilter(sql, params, "USE_CASE_OWNER", "useCaseOwner", filter.getUseCaseOwner());
-        applyInFilter(sql, params, "USE_CASE_ACCOUNTABLE_EXECUTIVE", "useCaseAccountableExecutive", filter.getUseCaseAccountableExecutive());
-        applyInFilter(sql, params, "USE_CASE_CATEGORY", "useCaseCategory", filter.getUseCaseCategory());
-        applyInFilter(sql, params, "PROJECT_OVERALL_RAG_STATUS", "projectOverallRagStatus", filter.getProjectOverallRagStatus());
-
-        applyInFilter(sql, params, "USE_CASE_DUE_DT_YEAR", "useCaseDueDtYear", filter.getUseCaseDueDtYear());
-        applyInFilter(sql, params, "USE_CASE_DUE_DT_QTR", "useCaseDueDtQtr", filter.getUseCaseDueDtQtr());
-        applyInFilter(sql, params, "USE_CASE_DUE_DT_MONTH", "useCaseDueDtMonth", filter.getUseCaseDueDtMonth());
-
-        applyInFilter(sql, params, "SMT_ACCOUNTABLE_EXECUTIVE", "smtAccountableExecutive", filter.getSmtAccountableExecutive());
-        applyInFilter(sql, params, "MILESTONE_OWNER", "milestoneOwner", filter.getMilestoneOwner());
-        applyInFilter(sql, params, "DELIVERABLE_OWNER", "deliverableOwner", filter.getDeliverableOwner());
-
-        applyInFilter(sql, params, "MILESTONE_YEAR", "milestoneYear", filter.getMilestoneYear());
-        applyInFilter(sql, params, "MILESTONE_QTR", "milestoneQtr", filter.getMilestoneQtr());
-        applyInFilter(sql, params, "MILESTONE_MONTH", "milestoneMonth", filter.getMilestoneMonth());
-
-        applyInFilter(sql, params, "DELIVERABLE_YEAR", "deliverableYear", filter.getDeliverableYear());
-        applyInFilter(sql, params, "DELIVERABLE_QTR", "deliverableQtr", filter.getDeliverableQtr());
-        applyInFilter(sql, params, "DELIVERABLE_MONTH", "deliverableMonth", filter.getDeliverableMonth());
-
-        applyInFilter(sql, params, "INITIATIVE_NAME", "initiativeName", filter.getInitiativeName());
-        applyInFilter(sql, params, "PROGRAM_NAME", "programName", filter.getProgramName());
-        applyInFilter(sql, params, "WORK_EFFORT_NAME", "workEffortName", filter.getWorkEffortName());
-        applyInFilter(sql, params, "DERIVED_PROGRAM_CATEGORY", "derivedProgramCategory", filter.getDerivedProgramCategory());
-        applyInFilter(sql, params, "OCC_CONSENT_ORDER_ARTICLE", "occConsentOrderArticle", filter.getOccConsentOrderArticle());
-        applyInFilter(sql, params, "SUBPORTFOLIO_NAME", "subportfolioName", filter.getSubportfolioName());
-
-        applyInFilter(sql, params, "MILESTONE_RAG_STATUS", "milestoneRagStatus", filter.getMilestoneRagStatus());
-        applyInFilter(sql, params, "DELIVERABLE_RAG_STATUS", "deliverableRagStatus", filter.getDeliverableRagStatus());
-    }
-}
-
-
-
-
-
-
-
-
-package com.yourcompany.pts.enums;
-
-public enum RagStatus {
-
-    GREEN("Green", "copts-donut-green"),
-    AMBER("Amber", "copts-donut-amber"),
-    RED("Red", "copts-donut-red"),
-    NOT_STARTED("Not Started", "copts-donut-not-started");
-
-    private final String displayName;
-    private final String cssClass;
-
-    RagStatus(String displayName, String cssClass) {
-        this.displayName = displayName;
-        this.cssClass = cssClass;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public String getCssClass() {
-        return cssClass;
-    }
-
-    /**
-     * Convert DB value to Enum
-     */
-    public static RagStatus fromDbValue(String dbValue) {
-        if (dbValue == null) {
-            return null;
-        }
-
-        switch (dbValue.trim().toUpperCase()) {
-            case "GREEN":
-                return GREEN;
-            case "AMBER":
-                return AMBER;
-            case "RED":
-                return RED;
-            case "NOT_STARTED":
-            case "NOT STARTED":
-                return NOT_STARTED;
-            default:
-                return null;
-        }
-    }
-}
-
-
-
-
-
-
-RagStatus status = RagStatus.fromDbValue(row.getProjectOverallRagStatus());
-chartData.add(
-    new PieChartDataDto(
-        status.getDisplayName(),
-        row.getUseCaseCount(),
-        status.getCssClass()
-    )
-);
-
-
-
-
-package com.yourcompany.pts.dto.response;
-
-import lombok.AllArgsConstructor;
-import lombok.Data;
-
-/**
- * Represents a single data point in the Pie Chart
- */
-@Data
-@AllArgsConstructor
-public class PieChartDataDto {
-    private String name;      // RAG display name e.g. "Green"
-    private Integer y;        // Count
-    private String className; // CSS class for UI
-}
-
-
-
-
-
-package com.yourcompany.pts.dto.response;
-
-import lombok.Data;
-import java.util.List;
-
-/**
- * Represents Pie Chart response for the UI
- */
-@Data
-public class PieChartResponseDto {
-    private String name;               // Chart title, e.g. "Use Cases by RAG Status"
-    private String type;               // Chart type, e.g. "pie"
-    private boolean colorByPoint;      // Always true for pie chart
-    private List<PieChartDataDto> data; // List of data points
-}
-
-
-
-
-
-
-
-
-package com.yourcompany.pts.exception;
-
-/**
- * Thrown when request validation fails
- */
-public class BadRequestException extends RuntimeException {
-    public BadRequestException(String message) {
-        super(message);
-    }
-}
-
-
-
-
-
-
-
-
-
-
-package com.yourcompany.pts.exception;
-
-import com.yourcompany.pts.dto.response.ApiErrorResponse;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import javax.servlet.http.HttpServletRequest;
-import java.time.LocalDateTime;
-
-@ControllerAdvice
-public class GlobalExceptionHandler {
-
-    @ExceptionHandler(DataNotFoundException.class)
-    public ResponseEntity<ApiErrorResponse> handleDataNotFound(
-            DataNotFoundException ex, HttpServletRequest request) {
-
-        ApiErrorResponse response = new ApiErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.NOT_FOUND.value(),
-                HttpStatus.NOT_FOUND.getReasonPhrase(),
-                ex.getMessage(),
-                request.getRequestURI()
-        );
-
-        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
-    }
-
-    @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<ApiErrorResponse> handleBadRequest(
-            BadRequestException ex, HttpServletRequest request) {
-
-        ApiErrorResponse response = new ApiErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                HttpStatus.BAD_REQUEST.getReasonPhrase(),
-                ex.getMessage(),
-                request.getRequestURI()
-        );
-
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiErrorResponse> handleGenericException(
-            Exception ex, HttpServletRequest request) {
-
-        ApiErrorResponse response = new ApiErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
-                ex.getMessage(),
-                request.getRequestURI()
-        );
-
-        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-}
-
-
-
-
-
+/// dto
 
 
 
@@ -462,17 +56,15 @@ public class GlobalExceptionHandler {
 
 package com.yourcompany.pts.dto.request;
 
-import lombok.Data;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
+
 import java.util.List;
 
-/**
- * Global Filter Request for dashboard APIs
- * All fields as List for multi-select filters
- * @JsonProperty maps frontend JSON keys exactly
- */
 @Data
 public class GlobalFilterRequestDto {
+
+    /* ================= BASIC FILTERS ================= */
 
     @JsonProperty("USE_CASE_NO")
     private List<String> useCaseNo;
@@ -492,44 +84,11 @@ public class GlobalFilterRequestDto {
     @JsonProperty("PROJECT_OVERALL_RAG_STATUS")
     private List<String> projectOverallRagStatus;
 
-    @JsonProperty("USE_CASE_DUE_DT_YEAR")
-    private List<Integer> useCaseDueDtYear;
-
-    @JsonProperty("USE_CASE_DUE_DT_QTR")
-    private List<String> useCaseDueDtQtr;
-
-    @JsonProperty("USE_CASE_DUE_DT_MONTH")
-    private List<String> useCaseDueDtMonth;
-
     @JsonProperty("SMT_ACCOUNTABLE_EXECUTIVE")
     private List<String> smtAccountableExecutive;
 
-    @JsonProperty("MILESTONE_OWNER")
-    private List<String> milestoneOwner;
-
     @JsonProperty("DELIVERABLE_OWNER")
     private List<String> deliverableOwner;
-
-    @JsonProperty("MILESTONE_YEAR")
-    private List<Integer> milestoneYear;
-
-    @JsonProperty("MILESTONE_QTR")
-    private List<String> milestoneQtr;
-
-    @JsonProperty("MILESTONE_MONTH")
-    private List<String> milestoneMonth;
-
-    @JsonProperty("DELIVERABLE_YEAR")
-    private List<Integer> deliverableYear;
-
-    @JsonProperty("DELIVERABLE_QTR")
-    private List<String> deliverableQtr;
-
-    @JsonProperty("DELIVERABLE_MONTH")
-    private List<String> deliverableMonth;
-
-    @JsonProperty("INITIATIVE_NAME")
-    private List<String> initiativeName;
 
     @JsonProperty("PROGRAM_NAME")
     private List<String> programName;
@@ -549,9 +108,260 @@ public class GlobalFilterRequestDto {
     @JsonProperty("MILESTONE_RAG_STATUS")
     private List<String> milestoneRagStatus;
 
-    @JsonProperty("DELIVERABLE_RAG_STATUS")
-    private List<String> deliverableRagStatus;
+    /* ================= DERIVED DATE FILTERS (ONLY 3) ================= */
+
+    @JsonProperty("MILESTONE_YEAR")
+    private List<Integer> milestoneYear;
+
+    @JsonProperty("MILESTONE_QTR")
+    private List<String> milestoneQtr;
+
+    @JsonProperty("MILESTONE_MONTH")
+    private List<String> milestoneMonth;
 }
+
+
+
+
+
+
+
+
+
+package com.yourcompany.pts.dto.response;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class RagStatusDataDto {
+
+    private String projectOverallRagStatus;
+    private Long useCaseCount;
+}
+
+
+
+
+
+
+
+
+// service 
+
+
+
+
+
+package com.yourcompany.pts.service;
+
+import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
+import com.yourcompany.pts.dto.response.RagStatusDataDto;
+import com.yourcompany.pts.repository.RagStatusRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class RagStatusService {
+
+    private final RagStatusRepository repository;
+
+    public RagStatusService(RagStatusRepository repository) {
+        this.repository = repository;
+    }
+
+    public List<RagStatusDataDto> fetchRagStatus(GlobalFilterRequestDto request) {
+        return repository.getRagStatusCount(request);
+    }
+}
+
+
+
+
+
+
+// repo
+
+
+
+
+
+
+package com.yourcompany.pts.repository;
+
+import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
+import com.yourcompany.pts.dto.response.RagStatusDataDto;
+import com.yourcompany.pts.util.GlobalFilterSqlBuilder;
+import org.springframework.jdbc.core.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public class RagStatusRepository {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    public RagStatusRepository(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    public List<RagStatusDataDto> getRagStatusCount(GlobalFilterRequestDto request) {
+
+        StringBuilder sql = new StringBuilder(
+            "SELECT PROJECT_OVERALL_RAG_STATUS, " +
+            "COUNT(DISTINCT USE_CASE_NO) AS USE_CASE_COUNT " +
+            "FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW " +
+            "WHERE CO_TYPE = 'CO Milestone' " +
+            "AND USE_CASE_NO IS NOT NULL " +
+            "AND PROJECT_OVERALL_RAG_STATUS <> 'NA' " +
+            "AND RAG_STATUS <> 'NA' "
+        );
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+
+        // 🔹 Apply reusable global filters
+        GlobalFilterSqlBuilder.applyFilters(sql, params, request);
+
+        sql.append(" GROUP BY PROJECT_OVERALL_RAG_STATUS");
+
+        return jdbcTemplate.query(
+            sql.toString(),
+            params,
+            (rs, rowNum) -> {
+                RagStatusDataDto dto = new RagStatusDataDto();
+                dto.setProjectOverallRagStatus(rs.getString("PROJECT_OVERALL_RAG_STATUS"));
+                dto.setUseCaseCount(rs.getLong("USE_CASE_COUNT"));
+                return dto;
+            }
+        );
+    }
+}
+
+
+
+
+
+
+
+
+
+
+// gfbuilder
+
+
+
+
+
+
+package com.yourcompany.pts.util;
+
+import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+
+public final class GlobalFilterSqlBuilder {
+
+    private GlobalFilterSqlBuilder() {
+        // utility class
+    }
+
+    public static void applyFilters(
+            StringBuilder sql,
+            MapSqlParameterSource params,
+            GlobalFilterRequestDto request
+    ) {
+
+        /* ================= BASIC DB COLUMN FILTERS ================= */
+
+        addInFilter(sql, params, "USE_CASE_NO", request.getUseCaseNo());
+        addInFilter(sql, params, "USE_CASE_OWNERSHIP", request.getUseCaseOwnership());
+        addInFilter(sql, params, "USE_CASE_OWNER", request.getUseCaseOwner());
+        addInFilter(sql, params, "USE_CASE_ACCOUNTABLE_EXECUTIVE", request.getUseCaseAccountableExecutive());
+        addInFilter(sql, params, "USE_CASE_CATEGORY", request.getUseCaseCategory());
+        addInFilter(sql, params, "PROJECT_OVERALL_RAG_STATUS", request.getProjectOverallRagStatus());
+        addInFilter(sql, params, "SMT_ACCOUNTABLE_EXECUTIVE", request.getSmtAccountableExecutive());
+        addInFilter(sql, params, "DELIVERABLE_OWNER", request.getDeliverableOwner());
+        addInFilter(sql, params, "PROGRAM_NAME", request.getProgramName());
+        addInFilter(sql, params, "WORK_EFFORT_NAME", request.getWorkEffortName());
+        addInFilter(sql, params, "DERIVED_PROGRAM_CATEGORY", request.getDerivedProgramCategory());
+        addInFilter(sql, params, "OCC_CONSENT_ORDER_ARTICLE", request.getOccConsentOrderArticle());
+        addInFilter(sql, params, "SUBPORTFOLIO_NAME", request.getSubportfolioName());
+
+        /* ================= DERIVED DATE FILTERS (ONLY 3) ================= */
+
+        addYearFilter(sql, params, "MILESTONE_YEAR", request.getMilestoneYear());
+        addQuarterFilter(sql, params, "MILESTONE_QTR", request.getMilestoneQtr());
+        addMonthFilter(sql, params, "MILESTONE_MONTH", request.getMilestoneMonth());
+    }
+
+    /* ================= GENERIC HELPERS ================= */
+
+    private static void addInFilter(
+            StringBuilder sql,
+            MapSqlParameterSource params,
+            String column,
+            Object values
+    ) {
+        if (values != null) {
+            sql.append(" AND ")
+               .append(column)
+               .append(" IN (:")
+               .append(column)
+               .append(")");
+            params.addValue(column, values);
+        }
+    }
+
+    private static void addYearFilter(
+            StringBuilder sql,
+            MapSqlParameterSource params,
+            String paramName,
+            Object values
+    ) {
+        if (values != null) {
+            sql.append(" AND EXTRACT(YEAR FROM DUE_DATE) IN (:")
+               .append(paramName)
+               .append(")");
+            params.addValue(paramName, values);
+        }
+    }
+
+    private static void addQuarterFilter(
+            StringBuilder sql,
+            MapSqlParameterSource params,
+            String paramName,
+            Object values
+    ) {
+        if (values != null) {
+            sql.append(" AND ('Q' || TO_CHAR(DUE_DATE,'Q') || ' ' || TO_CHAR(DUE_DATE,'YYYY'))")
+               .append(" IN (:")
+               .append(paramName)
+               .append(")");
+            params.addValue(paramName, values);
+        }
+    }
+
+    private static void addMonthFilter(
+            StringBuilder sql,
+            MapSqlParameterSource params,
+            String paramName,
+            Object values
+    ) {
+        if (values != null) {
+            sql.append(" AND TO_CHAR(DUE_DATE,'Mon YYYY') IN (:")
+               .append(paramName)
+               .append(")");
+            params.addValue(paramName, values);
+        }
+    }
+}
+
+
 
 
 
