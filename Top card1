@@ -366,7 +366,18 @@ public final class GlobalFilterSqlBuilder {
 
 
 
+// json request 
 
+
+
+
+
+{
+  "USE_CASE_OWNERSHIP": ["Banking", "HR"],
+  "MILESTONE_YEAR": [2024, 2025],
+  "MILESTONE_QTR": ["Q1 2025"],
+  "PROJECT_OVERALL_RAG_STATUS": ["Green", "Amber"]
+}
 
 
 
