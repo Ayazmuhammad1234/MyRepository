@@ -1,0 +1,482 @@
+package com.yourcompany.pts.util;
+
+import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+
+public final class GlobalFilterSqlBuilder {
+
+    private GlobalFilterSqlBuilder() {}
+
+    public static void applyGlobalFilters(
+            StringBuilder sql,
+            MapSqlParameterSource params,
+            GlobalFilterRequestDto req
+    ) {
+
+        /* ========== BASIC FILTERS ========== */
+
+        addInFilter(sql, params, "USE_CASE_NO", "USE_CASE_NO", req.getUseCaseNo());
+        addInFilter(sql, params, "USE_CASE_OWNERSHIP", "USE_CASE_OWNERSHIP", req.getUseCaseOwnership());
+        addInFilter(sql, params, "USE_CASE_OWNER", "USE_CASE_OWNER", req.getUseCaseOwner());
+        addInFilter(sql, params, "USE_CASE_ACCOUNTABLE_EXECUTIVE",
+                "USE_CASE_ACCOUNTABLE_EXECUTIVE", req.getUseCaseAccountableExecutive());
+        addInFilter(sql, params, "USE_CASE_CATEGORY", "USE_CASE_CATEGORY", req.getUseCaseCategory());
+        addInFilter(sql, params, "PROJECT_OVERALL_RAG_STATUS",
+                "PROJECT_OVERALL_RAG_STATUS", req.getProjectOverallRagStatus());
+        addInFilter(sql, params, "SMT_ACCOUNTABLE_EXECUTIVE",
+                "SMT_ACCOUNTABLE_EXECUTIVE", req.getSmtAccountableExecutive());
+        addInFilter(sql, params, "PROGRAM_NAME", "PROGRAM_NAME", req.getProgramName());
+        addInFilter(sql, params, "WORK_EFFORT_NAME", "WORK_EFFORT_NAME", req.getWorkEffortName());
+        addInFilter(sql, params, "DERIVED_PROGRAM_CATEGORY",
+                "DERIVED_PROGRAM_CATEGORY", req.getDerivedProgramCategory());
+        addInFilter(sql, params, "OCC_CONSENT_ORDER_ARTICLE",
+                "OCC_CONSENT_ORDER_ARTICLE", req.getOccConsentOrderArticle());
+        addInFilter(sql, params, "SUBPORTFOLIO_NAME",
+                "SUBPORTFOLIO_NAME", req.getSubportfolioName());
+
+        /* ========== MILESTONE FILTERS ========== */
+
+        addCoTypeYearFilter(sql, params, "CO Milestone",
+                "MILESTONE_YEAR", req.getMilestoneYear());
+
+        addCoTypeQuarterFilter(sql, params, "CO Milestone",
+                "MILESTONE_QTR", req.getMilestoneQtr());
+
+        addCoTypeMonthFilter(sql, params, "CO Milestone",
+                "MILESTONE_MONTH", req.getMilestoneMonth());
+
+        addInFilter(sql, params, "RAG_STATUS",
+                "MILESTONE_RAG_STATUS", req.getMilestoneRagStatus());
+
+        /* ========== DELIVERABLE FILTERS ========== */
+
+        addCoTypeYearFilter(sql, params, "CO Deliverable",
+                "DELIVERABLE_YEAR", req.getDeliverableYear());
+
+        addCoTypeQuarterFilter(sql, params, "CO Deliverable",
+                "DELIVERABLE_QTR", req.getDeliverableQtr());
+
+        addCoTypeMonthFilter(sql, params, "CO Deliverable",
+                "DELIVERABLE_MONTH", req.getDeliverableMonth());
+
+        addInFilterWithCoType(sql, params, "RAG_STATUS",
+                "DELIVERABLE_RAG_STATUS", "CO Deliverable",
+                req.getDeliverableRagStatus());
+
+        /* ========== USE CASE DUE DATE FILTERS ========== */
+
+        addCoTypeYearFilter(sql, params, "CO Milestone",
+                "USE_CASE_DUE_DT_YEAR", req.getUseCaseDueDtYear());
+
+        addCoTypeQuarterFilter(sql, params, "CO Milestone",
+                "USE_CASE_DUE_DT_QTR", req.getUseCaseDueDtQtr());
+
+        addCoTypeMonthFilter(sql, params, "CO Milestone",
+                "USE_CASE_DUE_DT_MONTH", req.getUseCaseDueDtMonth());
+    }
+
+    /* ================= HELPER METHODS ================= */
+
+    private static void addInFilter(StringBuilder sql,
+                                    MapSqlParameterSource params,
+                                    String column,
+                                    String param,
+                                    Object values) {
+        if (values != null) {
+            sql.append(" AND ( :").append(param)
+               .append(" IS NULL OR ")
+               .append(column).append(" IN (:").append(param).append(") )");
+            params.addValue(param, values);
+        }
+    }
+
+    private static void addInFilterWithCoType(StringBuilder sql,
+                                              MapSqlParameterSource params,
+                                              String column,
+                                              String param,
+                                              String coType,
+                                              Object values) {
+        if (values != null) {
+            sql.append(" AND ( :").append(param)
+               .append(" IS NULL OR ( CO_TYPE = '")
+               .append(coType)
+               .append("' AND ")
+               .append(column).append(" IN (:").append(param).append(") ) )");
+            params.addValue(param, values);
+        }
+    }
+
+    private static void addCoTypeYearFilter(StringBuilder sql,
+                                            MapSqlParameterSource params,
+                                            String coType,
+                                            String param,
+                                            Object values) {
+        if (values != null) {
+            sql.append(" AND ( :").append(param)
+               .append(" IS NULL OR ( CO_TYPE = '")
+               .append(coType)
+               .append("' AND EXTRACT(YEAR FROM DUE_DATE) IN (:")
+               .append(param).append(") ) )");
+            params.addValue(param, values);
+        }
+    }
+
+    private static void addCoTypeQuarterFilter(StringBuilder sql,
+                                               MapSqlParameterSource params,
+                                               String coType,
+                                               String param,
+                                               Object values) {
+        if (values != null) {
+            sql.append(" AND ( :").append(param)
+               .append(" IS NULL OR ( CO_TYPE = '")
+               .append(coType)
+               .append("' AND ('Q' || TO_CHAR(DUE_DATE,'Q') || ' ' || TO_CHAR(DUE_DATE,'YYYY'))")
+               .append(" IN (:").append(param).append(") ) )");
+            params.addValue(param, values);
+        }
+    }
+
+    private static void addCoTypeMonthFilter(StringBuilder sql,
+                                             MapSqlParameterSource params,
+                                             String coType,
+                                             String param,
+                                             Object values) {
+        if (values != null) {
+            sql.append(" AND ( :").append(param)
+               .append(" IS NULL OR ( CO_TYPE = '")
+               .append(coType)
+               .append("' AND TO_CHAR(DUE_DATE,'Mon YYYY') IN (:")
+               .append(param).append(") ) )");
+            params.addValue(param, values);
+        }
+    }
+}
+
+
+
+
+
+//controller 
+
+
+package com.yourcompany.pts.repository;
+
+import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
+import com.yourcompany.pts.dto.response.RagStatusCountDto;
+import com.yourcompany.pts.util.GlobalFilterSqlBuilder;
+import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+@RequiredArgsConstructor
+public class DashboardRepository {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    public List<RagStatusCountDto> getRagStatusCount(GlobalFilterRequestDto request) {
+
+        StringBuilder sql = new StringBuilder(
+            "SELECT PROJECT_OVERALL_RAG_STATUS, " +
+            "COUNT(DISTINCT USE_CASE_NO) AS USE_CASE_COUNT " +
+            "FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW " +
+            "WHERE CO_TYPE = 'CO Milestone' " +
+            "AND USE_CASE_NO IS NOT NULL " +
+            "AND PROJECT_OVERALL_RAG_STATUS <> 'NA' " +
+            "AND RAG_STATUS <> 'NA' "
+        );
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+
+        // 🔥 Reusable global filters
+        GlobalFilterSqlBuilder.applyGlobalFilters(sql, params, request);
+
+        sql.append(" GROUP BY PROJECT_OVERALL_RAG_STATUS");
+
+        return jdbcTemplate.query(
+            sql.toString(),
+            params,
+            (rs, rowNum) -> new RagStatusCountDto(
+                rs.getString("PROJECT_OVERALL_RAG_STATUS"),
+                rs.getLong("USE_CASE_COUNT")
+            )
+        );
+    }
+}
+
+
+
+
+
+
+
+
+// controller 
+
+
+
+
+
+
+
+package com.yourcompany.pts.service;
+
+import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
+import com.yourcompany.pts.dto.response.RagStatusCountDto;
+import com.yourcompany.pts.repository.DashboardRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class DashboardService {
+
+    private final DashboardRepository repository;
+
+    public List<RagStatusCountDto> getRagStatusSummary(GlobalFilterRequestDto request) {
+        return repository.getRagStatusCount(request);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+//controller 
+
+
+
+
+
+
+package com.yourcompany.pts.controller;
+
+import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
+import com.yourcompany.pts.dto.response.RagStatusCountDto;
+import com.yourcompany.pts.service.DashboardService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/dashboard")
+@RequiredArgsConstructor
+public class DashboardController {
+
+    private final DashboardService dashboardService;
+
+    @PostMapping("/rag-status")
+    public List<RagStatusCountDto> getRagStatusCount(
+            @RequestBody GlobalFilterRequestDto request) {
+        return dashboardService.getRagStatusSummary(request);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+// dto
+
+
+
+
+
+
+
+package com.yourcompany.pts.dto.request;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
+
+import java.util.List;
+
+/**
+ * Global Filter Request DTO
+ *
+ * - All fields are multi-select (List)
+ * - Fields may be NULL or EMPTY
+ * - Date-related fields are DERIVED from DUE_DATE
+ * - Safe for dynamic SQL builders
+ */
+@Data
+public class GlobalFilterRequestDto {
+
+    /* ================= USE CASE ================= */
+
+    @JsonProperty("USE_CASE_NO")
+    private List<String> useCaseNo;
+
+    @JsonProperty("USE_CASE_OWNERSHIP")
+    private List<String> useCaseOwnership;
+
+    @JsonProperty("USE_CASE_OWNER")
+    private List<String> useCaseOwner;
+
+    @JsonProperty("USE_CASE_ACCOUNTABLE_EXECUTIVE")
+    private List<String> useCaseAccountableExecutive;
+
+    @JsonProperty("USE_CASE_CATEGORY")
+    private List<String> useCaseCategory;
+
+    @JsonProperty("PROJECT_OVERALL_RAG_STATUS")
+    private List<String> projectOverallRagStatus;
+
+
+    /* ================= USE CASE DUE DATE (DERIVED) ================= */
+
+    @JsonProperty("USE_CASE_DUE_DT_YEAR")
+    private List<Integer> useCaseDueDtYear;
+
+    @JsonProperty("USE_CASE_DUE_DT_QTR")
+    private List<String> useCaseDueDtQtr;
+
+    @JsonProperty("USE_CASE_DUE_DT_MONTH")
+    private List<String> useCaseDueDtMonth;
+
+
+    /* ================= OWNERS ================= */
+
+    @JsonProperty("SMT_ACCOUNTABLE_EXECUTIVE")
+    private List<String> smtAccountableExecutive;
+
+    @JsonProperty("MILESTONE_OWNER")
+    private List<String> milestoneOwner;
+
+    @JsonProperty("DELIVERABLE_OWNER")
+    private List<String> deliverableOwner;
+
+
+    /* ================= MILESTONE DATE (DERIVED) ================= */
+
+    @JsonProperty("MILESTONE_YEAR")
+    private List<Integer> milestoneYear;
+
+    @JsonProperty("MILESTONE_QTR")
+    private List<String> milestoneQtr;
+
+    @JsonProperty("MILESTONE_MONTH")
+    private List<String> milestoneMonth;
+
+
+    /* ================= DELIVERABLE DATE (DERIVED) ================= */
+
+    @JsonProperty("DELIVERABLE_YEAR")
+    private List<Integer> deliverableYear;
+
+    @JsonProperty("DELIVERABLE_QTR")
+    private List<String> deliverableQtr;
+
+    @JsonProperty("DELIVERABLE_MONTH")
+    private List<String> deliverableMonth;
+
+
+    /* ================= WORK EFFORT ================= */
+
+    @JsonProperty("INITIATIVE_NAME")
+    private List<String> initiativeName;
+
+    @JsonProperty("PROGRAM_NAME")
+    private List<String> programName;
+
+    @JsonProperty("WORK_EFFORT_NAME")
+    private List<String> workEffortName;
+
+    @JsonProperty("DERIVED_PROGRAM_CATEGORY")
+    private List<String> derivedProgramCategory;
+
+
+    /* ================= OTHER ATTRIBUTES ================= */
+
+    @JsonProperty("OCC_CONSENT_ORDER_ARTICLE")
+    private List<String> occConsentOrderArticle;
+
+    @JsonProperty("SUBPORTFOLIO_NAME")
+    private List<String> subportfolioName;
+
+
+    /* ================= RAG STATUS ================= */
+
+    @JsonProperty("MILESTONE_RAG_STATUS")
+    private List<String> milestoneRagStatus;
+
+    @JsonProperty("DELIVERABLE_RAG_STATUS")
+    private List<String> deliverableRagStatus;
+}
+
+
+
+
+
+
+
+
+// json
+
+
+
+
+
+
+
+
+{
+  "USE_CASE_NO": ["UC-1001", "UC-1023"],
+  "USE_CASE_OWNERSHIP": ["Banking", "HR"],
+  "USE_CASE_OWNER": ["John Doe"],
+  "USE_CASE_ACCOUNTABLE_EXECUTIVE": null,
+  "USE_CASE_CATEGORY": ["End Point Consumption"],
+  "PROJECT_OVERALL_RAG_STATUS": ["Green", "Amber"],
+
+  "USE_CASE_DUE_DT_YEAR": [2024, 2025],
+  "USE_CASE_DUE_DT_QTR": ["Q1 2025", "Q2 2024"],
+  "USE_CASE_DUE_DT_MONTH": ["Jan 2025"],
+
+  "SMT_ACCOUNTABLE_EXECUTIVE": ["Jane Smith"],
+  "MILESTONE_OWNER": ["Mike Johnson"],
+  "DELIVERABLE_OWNER": null,
+
+  "MILESTONE_YEAR": [2024],
+  "MILESTONE_QTR": ["Q4 2024"],
+  "MILESTONE_MONTH": ["Dec 2024"],
+
+  "DELIVERABLE_YEAR": [2025],
+  "DELIVERABLE_QTR": ["Q1 2025"],
+  "DELIVERABLE_MONTH": ["Feb 2025"],
+
+  "INITIATIVE_NAME": ["Digital Transformation"],
+  "PROGRAM_NAME": ["Core Banking Revamp"],
+  "WORK_EFFORT_NAME": ["API Modernization"],
+  "DERIVED_PROGRAM_CATEGORY": ["Strategic"],
+
+  "OCC_CONSENT_ORDER_ARTICLE": ["Article 12"],
+  "SUBPORTFOLIO_NAME": ["Payments"],
+
+  "MILESTONE_RAG_STATUS": ["Green"],
+  "DELIVERABLE_RAG_STATUS": ["Amber"]
+}
+
+
+
+
