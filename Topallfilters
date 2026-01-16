@@ -1,3 +1,43 @@
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class RagStatusDataDto {
+
+    // PROJECT_OVERALL_RAG_STATUS
+    private String name;
+
+    // USE_CASE_COUNT
+    private Integer y;
+
+    // copts-donut-{ragstatus}
+    private String className;
+}
+
+
+
+
+
+
+@AllArgsConstructor
+@NoArgsConstructor
+public class RagStatusResponseDto {
+
+    private String name = "Use Cases by RAG Status";
+    private String type = "pie";
+    private boolean colorByPoint = true;
+
+    private List<RagStatusDataDto> data;
+
+    public RagStatusResponseDto(List<RagStatusDataDto> data) {
+        this.data = data;
+    }
+}
+
+
+
+
+
+
 @Service
 @RequiredArgsConstructor
 public class RagStatusServiceImpl implements RagStatusService {
