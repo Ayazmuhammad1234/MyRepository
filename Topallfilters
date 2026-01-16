@@ -1,3 +1,49 @@
+@Service
+@RequiredArgsConstructor
+public class RagStatusServiceImpl implements RagStatusService {
+
+    private final RagStatusRepository ragStatusRepository;
+
+    @Override
+    public RagStatusResponseDto getRagStatus(GlobalFilterRequestDto request) {
+
+        RagStatusCountDto dbResult =
+                ragStatusRepository.fetchRagStatusCount(request);
+
+        if (dbResult == null) {
+            throw new DataNotFoundException(
+                    "No RAG status data found for the given filters"
+            );
+        }
+
+        RagStatusDataDto chartData = mapToChartDto(dbResult);
+
+        return new RagStatusResponseDto(
+                Collections.singletonList(chartData)
+        );
+    }
+
+    private RagStatusDataDto mapToChartDto(RagStatusCountDto dto) {
+
+        RagStatusDataDto data = new RagStatusDataDto();
+
+        data.setName(dto.getProjectOverallRagStatus());   // GREEN / AMBER / RED
+        data.setY(dto.getUseCaseCount().intValue());
+        data.setClassName(
+                "copts-donut-" +
+                dto.getProjectOverallRagStatus().toLowerCase()
+        );
+
+        return data;
+    }
+}
+
+
+
+
+
+
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
