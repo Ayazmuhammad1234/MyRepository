@@ -644,7 +644,8 @@ public final class GlobalFilterSqlBuilder {
 
 
 
-public final class GlobalFilterSqlBuilder {
+
+    public final class GlobalFilterSqlBuilder {
 
     private GlobalFilterSqlBuilder() {}
 
@@ -654,7 +655,7 @@ public final class GlobalFilterSqlBuilder {
             GlobalFilterRequestDto req
     ) {
 
-        /* ========== BASIC FILTERS ========== */
+        /* ================= USE CASE ================= */
 
         addIn(sql, params, "USE_CASE_NO", req.getUseCaseNo());
         addIn(sql, params, "USE_CASE_OWNERSHIP", req.getUseCaseOwnership());
@@ -662,14 +663,49 @@ public final class GlobalFilterSqlBuilder {
         addIn(sql, params, "USE_CASE_ACCOUNTABLE_EXECUTIVE", req.getUseCaseAccountableExecutive());
         addIn(sql, params, "USE_CASE_CATEGORY", req.getUseCaseCategory());
         addIn(sql, params, "PROJECT_OVERALL_RAG_STATUS", req.getProjectOverallRagStatus());
-        addIn(sql, params, "SMT_ACCOUNTABLE_EXECUTIVE", req.getSmtAccountableExecutive());
-        addIn(sql, params, "PROGRAM_NAME", req.getProgramName());
-        addIn(sql, params, "WORK_EFFORT_NAME", req.getWorkEffortName());
-        addIn(sql, params, "DERIVED_PROGRAM_CATEGORY", req.getDerivedProgramCategory());
-        addIn(sql, params, "OCC_CONSENT_ORDER_ARTICLE", req.getOccConsentOrderArticle());
-        addIn(sql, params, "SUBPORTFOLIO_NAME", req.getSubportfolioName());
 
-        /* ========== MILESTONE FILTERS ========== */
+        /* ================= USE CASE DUE DATE (DERIVED) ================= */
+
+        addDerivedDateFilter(
+                sql, params, "CO Milestone",
+                "EXTRACT(YEAR FROM DUE_DATE)",
+                "USE_CASE_DUE_DT_YEAR",
+                req.getUseCaseDueDtYear()
+        );
+
+        addDerivedDateFilter(
+                sql, params, "CO Milestone",
+                "('Q' || TO_CHAR(DUE_DATE,'Q') || ' ' || TO_CHAR(DUE_DATE,'YYYY'))",
+                "USE_CASE_DUE_DT_QTR",
+                req.getUseCaseDueDtQtr()
+        );
+
+        addDerivedDateFilter(
+                sql, params, "CO Milestone",
+                "TO_CHAR(DUE_DATE,'Mon YYYY')",
+                "USE_CASE_DUE_DT_MONTH",
+                req.getUseCaseDueDtMonth()
+        );
+
+        /* ================= OWNERS ================= */
+
+        addIn(sql, params, "SMT_ACCOUNTABLE_EXECUTIVE", req.getSmtAccountableExecutive());
+
+        addInWithCoType(
+                sql, params, "CO Milestone",
+                "OWNER",
+                "MILESTONE_OWNER",
+                req.getMilestoneOwner()
+        );
+
+        addInWithCoType(
+                sql, params, "CO Deliverable",
+                "OWNER",
+                "DELIVERABLE_OWNER",
+                req.getDeliverableOwner()
+        );
+
+        /* ================= MILESTONE DATE (DERIVED) ================= */
 
         addDerivedDateFilter(
                 sql, params, "CO Milestone",
@@ -692,14 +728,7 @@ public final class GlobalFilterSqlBuilder {
                 req.getMilestoneMonth()
         );
 
-        addInWithCoType(
-                sql, params, "CO Milestone",
-                "RAG_STATUS",
-                "MILESTONE_RAG_STATUS",
-                req.getMilestoneRagStatus()
-        );
-
-        /* ========== DELIVERABLE FILTERS ========== */
+        /* ================= DELIVERABLE DATE (DERIVED) ================= */
 
         addDerivedDateFilter(
                 sql, params, "CO Deliverable",
@@ -722,6 +751,27 @@ public final class GlobalFilterSqlBuilder {
                 req.getDeliverableMonth()
         );
 
+        /* ================= WORK EFFORT ================= */
+
+        addIn(sql, params, "INITIATIVE_NAME", req.getInitiativeName());
+        addIn(sql, params, "PROGRAM_NAME", req.getProgramName());
+        addIn(sql, params, "WORK_EFFORT_NAME", req.getWorkEffortName());
+        addIn(sql, params, "DERIVED_PROGRAM_CATEGORY", req.getDerivedProgramCategory());
+
+        /* ================= OTHER ATTRIBUTES ================= */
+
+        addIn(sql, params, "OCC_CONSENT_ORDER_ARTICLE", req.getOccConsentOrderArticle());
+        addIn(sql, params, "SUBPORTFOLIO_NAME", req.getSubportfolioName());
+
+        /* ================= RAG STATUS ================= */
+
+        addInWithCoType(
+                sql, params, "CO Milestone",
+                "RAG_STATUS",
+                "MILESTONE_RAG_STATUS",
+                req.getMilestoneRagStatus()
+        );
+
         addInWithCoType(
                 sql, params, "CO Deliverable",
                 "RAG_STATUS",
@@ -736,7 +786,7 @@ public final class GlobalFilterSqlBuilder {
             StringBuilder sql,
             MapSqlParameterSource params,
             String column,
-            Collection<?> values
+            List<?> values
     ) {
         if (values != null && !values.isEmpty()) {
             sql.append(" AND ").append(column)
@@ -751,7 +801,7 @@ public final class GlobalFilterSqlBuilder {
             String coType,
             String column,
             String param,
-            Collection<?> values
+            List<?> values
     ) {
         if (values != null && !values.isEmpty()) {
             sql.append(" AND CO_TYPE = '").append(coType).append("'")
@@ -767,7 +817,7 @@ public final class GlobalFilterSqlBuilder {
             String coType,
             String derivedExpression,
             String param,
-            Collection<?> values
+            List<?> values
     ) {
         if (values != null && !values.isEmpty()) {
             sql.append(" AND CO_TYPE = '").append(coType).append("'")
