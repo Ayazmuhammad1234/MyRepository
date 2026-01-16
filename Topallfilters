@@ -1,3 +1,94 @@
+@Service
+@RequiredArgsConstructor
+public class RagStatusServiceImpl implements RagStatusService {
+
+    private final RagStatusRepository ragStatusRepository;
+
+    @Override
+    public RagStatusResponseDto getRagStatus(GlobalFilterRequestDto request) {
+
+        List<RagStatusCountDto> dbResult =
+                ragStatusRepository.fetchRagStatusCount(request);
+
+        if (dbResult == null || dbResult.isEmpty()) {
+            return new RagStatusResponseDto(Collections.emptyList());
+        }
+
+        List<RagStatusDataDto> chartData = dbResult.stream()
+                .map(this::mapToChartDto)
+                .collect(Collectors.toList());
+
+        return new RagStatusResponseDto(chartData);
+    }
+
+    private RagStatusDataDto mapToChartDto(RagStatusCountDto dto) {
+
+        RagStatusDataDto data = new RagStatusDataDto();
+
+        // PROJECT_OVERALL_RAG_STATUS
+        data.setName(dto.getProjectOverallRagStatus());
+
+        // USE_CASE_COUNT
+        data.setY(dto.getUseCaseCount() == null
+                ? 0
+                : dto.getUseCaseCount().intValue());
+
+        // copts-donut-{ragstatus}
+        data.setClassName(
+                "copts-donut-" +
+                dto.getProjectOverallRagStatus().toLowerCase()
+        );
+
+        return data;
+    }
+}
+
+
+
+
+
+
+//controller 
+
+
+@RestController
+@RequestMapping("/api/v1/rag-status")
+@RequiredArgsConstructor
+public class RagStatusController {
+
+    private final RagStatusService ragStatusService;
+
+    @PostMapping("/use-cases")
+    public ResponseEntity<RagStatusResponseDto> getUseCasesByRagStatus(
+            @RequestBody GlobalFilterRequestDto request
+    ) {
+        try {
+            RagStatusResponseDto response =
+                    ragStatusService.getRagStatus(request);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception ex) {
+            throw new RagStatusException(
+                    "Failed to fetch RAG status data", ex
+            );
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 package com.yourcompany.pts.util;
 
 import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
