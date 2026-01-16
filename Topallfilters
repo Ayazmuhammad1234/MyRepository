@@ -632,3 +632,148 @@ public final class GlobalFilterSqlBuilder {
     }
 }
 
+
+
+
+
+
+
+
+
+// new gf
+
+
+
+public final class GlobalFilterSqlBuilder {
+
+    private GlobalFilterSqlBuilder() {}
+
+    public static void applyGlobalFilters(
+            StringBuilder sql,
+            MapSqlParameterSource params,
+            GlobalFilterRequestDto req
+    ) {
+
+        /* ========== BASIC FILTERS ========== */
+
+        addIn(sql, params, "USE_CASE_NO", req.getUseCaseNo());
+        addIn(sql, params, "USE_CASE_OWNERSHIP", req.getUseCaseOwnership());
+        addIn(sql, params, "USE_CASE_OWNER", req.getUseCaseOwner());
+        addIn(sql, params, "USE_CASE_ACCOUNTABLE_EXECUTIVE", req.getUseCaseAccountableExecutive());
+        addIn(sql, params, "USE_CASE_CATEGORY", req.getUseCaseCategory());
+        addIn(sql, params, "PROJECT_OVERALL_RAG_STATUS", req.getProjectOverallRagStatus());
+        addIn(sql, params, "SMT_ACCOUNTABLE_EXECUTIVE", req.getSmtAccountableExecutive());
+        addIn(sql, params, "PROGRAM_NAME", req.getProgramName());
+        addIn(sql, params, "WORK_EFFORT_NAME", req.getWorkEffortName());
+        addIn(sql, params, "DERIVED_PROGRAM_CATEGORY", req.getDerivedProgramCategory());
+        addIn(sql, params, "OCC_CONSENT_ORDER_ARTICLE", req.getOccConsentOrderArticle());
+        addIn(sql, params, "SUBPORTFOLIO_NAME", req.getSubportfolioName());
+
+        /* ========== MILESTONE FILTERS ========== */
+
+        addDerivedDateFilter(
+                sql, params, "CO Milestone",
+                "EXTRACT(YEAR FROM DUE_DATE)",
+                "MILESTONE_YEAR",
+                req.getMilestoneYear()
+        );
+
+        addDerivedDateFilter(
+                sql, params, "CO Milestone",
+                "('Q' || TO_CHAR(DUE_DATE,'Q') || ' ' || TO_CHAR(DUE_DATE,'YYYY'))",
+                "MILESTONE_QTR",
+                req.getMilestoneQtr()
+        );
+
+        addDerivedDateFilter(
+                sql, params, "CO Milestone",
+                "TO_CHAR(DUE_DATE,'Mon YYYY')",
+                "MILESTONE_MONTH",
+                req.getMilestoneMonth()
+        );
+
+        addInWithCoType(
+                sql, params, "CO Milestone",
+                "RAG_STATUS",
+                "MILESTONE_RAG_STATUS",
+                req.getMilestoneRagStatus()
+        );
+
+        /* ========== DELIVERABLE FILTERS ========== */
+
+        addDerivedDateFilter(
+                sql, params, "CO Deliverable",
+                "EXTRACT(YEAR FROM DUE_DATE)",
+                "DELIVERABLE_YEAR",
+                req.getDeliverableYear()
+        );
+
+        addDerivedDateFilter(
+                sql, params, "CO Deliverable",
+                "('Q' || TO_CHAR(DUE_DATE,'Q') || ' ' || TO_CHAR(DUE_DATE,'YYYY'))",
+                "DELIVERABLE_QTR",
+                req.getDeliverableQtr()
+        );
+
+        addDerivedDateFilter(
+                sql, params, "CO Deliverable",
+                "TO_CHAR(DUE_DATE,'Mon YYYY')",
+                "DELIVERABLE_MONTH",
+                req.getDeliverableMonth()
+        );
+
+        addInWithCoType(
+                sql, params, "CO Deliverable",
+                "RAG_STATUS",
+                "DELIVERABLE_RAG_STATUS",
+                req.getDeliverableRagStatus()
+        );
+    }
+
+    /* ================= HELPERS ================= */
+
+    private static void addIn(
+            StringBuilder sql,
+            MapSqlParameterSource params,
+            String column,
+            Collection<?> values
+    ) {
+        if (values != null && !values.isEmpty()) {
+            sql.append(" AND ").append(column)
+               .append(" IN (:").append(column).append(")");
+            params.addValue(column, values);
+        }
+    }
+
+    private static void addInWithCoType(
+            StringBuilder sql,
+            MapSqlParameterSource params,
+            String coType,
+            String column,
+            String param,
+            Collection<?> values
+    ) {
+        if (values != null && !values.isEmpty()) {
+            sql.append(" AND CO_TYPE = '").append(coType).append("'")
+               .append(" AND ").append(column)
+               .append(" IN (:").append(param).append(")");
+            params.addValue(param, values);
+        }
+    }
+
+    private static void addDerivedDateFilter(
+            StringBuilder sql,
+            MapSqlParameterSource params,
+            String coType,
+            String derivedExpression,
+            String param,
+            Collection<?> values
+    ) {
+        if (values != null && !values.isEmpty()) {
+            sql.append(" AND CO_TYPE = '").append(coType).append("'")
+               .append(" AND ").append(derivedExpression)
+               .append(" IN (:").append(param).append(")");
+            params.addValue(param, values);
+        }
+    }
+}
