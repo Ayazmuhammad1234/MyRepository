@@ -1,586 +1,64 @@
-@Data
-public class PtsDashboardDto {
-
-    private String useCaseNo;
-    private String useCaseOwnership;
-    private String useCaseOwner;
-    private String useCaseAccountableExecutive;
-    private String useCaseCategory;
-    private String projectOverallRagStatus;
-
-    private Integer useCaseDueDtYear;
-    private String useCaseDueDtQtr;
-    private String useCaseDueDtMonth;
-
-    private String smtAccountableExecutive;
-    private String milestoneOwner;
-    private String deliverableOwner;
-
-    private Integer milestoneYear;
-    private String milestoneQtr;
-    private String milestoneMonth;
-
-    private Integer deliverableYear;
-    private String deliverableQtr;
-    private String deliverableMonth;
-
-    private String initiativeName;
-    private String programName;
-    private String workEffortName;
-    private String derivedProgramCategory;
-
-    private String occConsentOrderArticle;
-    private String subPortfolioName;
-
-    private String milestoneRagStatus;
-    private String deliverableRagStatus;
-
-
-
-
-}
-
-
-
-
-
-@Repository
-public class PtsDashboardRepository {
-
-    private final NamedParameterJdbcTemplate jdbcTemplate;
-
-    public PtsDashboardRepository(NamedParameterJdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
-
-    public List<PtsDashboardDto> fetchDashboardData() {
-
-        String sql = """
-            WITH preprocessed_data AS (
-                SELECT USE_CASE_NO, USE_CASE_OWNERSHIP, USE_CASE_OWNER,
-                       USE_CASE_ACCOUNTABLE_EXECUTIVE, USE_CASE_CATEGORY,
-                       PROJECT_OVERALL_RAG_STATUS, SMT_ACCOUNTABLE_EXECUTIVE,
-                       DELIVERABLE_OWNER, PROGRAM_NAME,
-                       OCC_CONSENT_ORDER_ARTICLE, SUBPORTFOLIO_NAME,
-                       RAG_STATUS, DUE_DATE, DERIVED_PROGRAM_CATEGORY,
-                       WORK_EFFORT_NAME, INITIATIVE_NAME,
-                       MILESTONE_ID, CO_TYPE
-                FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW
-                WHERE USE_CASE_NO IS NOT NULL
-                  AND PROJECT_OVERALL_RAG_STATUS <> 'NA'
-                  AND RAG_STATUS <> 'NA'
-            )
-
-            SELECT
-                MS.USE_CASE_NO,
-                MS.USE_CASE_OWNERSHIP,
-                MS.USE_CASE_OWNER,
-                MS.USE_CASE_ACCOUNTABLE_EXECUTIVE,
-                MS.USE_CASE_CATEGORY,
-                MS.PROJECT_OVERALL_RAG_STATUS,
-
-                UC.USE_CASE_DUE_DT_YEAR,
-                UC.USE_CASE_DUE_DT_QTR,
-                UC.USE_CASE_DUE_DT_MONTH,
-
-                MS.SMT_ACCOUNTABLE_EXECUTIVE,
-                MS.MILESTONE_OWNER,
-                DEL.DELIVERABLE_OWNER,
-
-                MS.MILESTONE_YEAR,
-                MS.MILESTONE_QTR,
-                MS.MILESTONE_MONTH,
-
-                DEL.DELIVERABLE_YEAR,
-                DEL.DELIVERABLE_QTR,
-                DEL.DELIVERABLE_MONTH,
-
-                DEL.INITIATIVE_NAME,
-                MS.PROGRAM_NAME,
-                DEL.WORK_EFFORT_NAME,
-                DEL.DERIVED_PROGRAM_CATEGORY,
-
-                MS.OCC_CONSENT_ORDER_ARTICLE,
-                MS.SUBPORTFOLIO_NAME,
-
-                MS.MILESTONE_RAG_STATUS,
-                DEL.DELIVERABLE_RAG_STATUS
-            FROM (
-                SELECT MILESTONE_ID, DELIVERABLE_OWNER, INITIATIVE_NAME,
-                       WORK_EFFORT_NAME, DERIVED_PROGRAM_CATEGORY,
-                       RAG_STATUS AS DELIVERABLE_RAG_STATUS,
-                       EXTRACT(YEAR FROM DUE_DATE) AS DELIVERABLE_YEAR,
-                       'Q' || TO_CHAR(DUE_DATE, 'Q') || ' ' || TO_CHAR(DUE_DATE, 'YYYY') AS DELIVERABLE_QTR,
-                       TO_CHAR(DUE_DATE, 'Mon YYYY') AS DELIVERABLE_MONTH
-                FROM preprocessed_data
-                WHERE CO_TYPE = 'CO Deliverable'
-            ) DEL
-            LEFT JOIN (
-                SELECT MILESTONE_ID, USE_CASE_NO, USE_CASE_OWNERSHIP,
-                       USE_CASE_OWNER, USE_CASE_ACCOUNTABLE_EXECUTIVE,
-                       USE_CASE_CATEGORY, PROJECT_OVERALL_RAG_STATUS,
-                       SMT_ACCOUNTABLE_EXECUTIVE,
-                       DELIVERABLE_OWNER AS MILESTONE_OWNER,
-                       PROGRAM_NAME, OCC_CONSENT_ORDER_ARTICLE,
-                       SUBPORTFOLIO_NAME,
-                       RAG_STATUS AS MILESTONE_RAG_STATUS,
-                       EXTRACT(YEAR FROM DUE_DATE) AS MILESTONE_YEAR,
-                       'Q' || TO_CHAR(DUE_DATE, 'Q') || ' ' || TO_CHAR(DUE_DATE, 'YYYY') AS MILESTONE_QTR,
-                       TO_CHAR(DUE_DATE, 'Mon YYYY') AS MILESTONE_MONTH
-                FROM preprocessed_data
-                WHERE CO_TYPE = 'CO Milestone'
-            ) MS ON DEL.MILESTONE_ID = MS.MILESTONE_ID
-            LEFT JOIN (
-                SELECT USE_CASE_NO,
-                       EXTRACT(YEAR FROM DUE_DATE) AS USE_CASE_DUE_DT_YEAR,
-                       'Q' || TO_CHAR(DUE_DATE, 'Q') || ' ' || TO_CHAR(DUE_DATE, 'YYYY') AS USE_CASE_DUE_DT_QTR,
-                       TO_CHAR(DUE_DATE, 'Mon YYYY') AS USE_CASE_DUE_DT_MONTH
-                FROM preprocessed_data
-                WHERE CO_TYPE = 'CO Milestone'
-                  AND USE_CASE_CATEGORY = 'End Point Consumption'
-            ) UC ON MS.USE_CASE_NO = UC.USE_CASE_NO
-        """;
-
-        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(PtsDashboardDto.class));
-    }
-}
-
-
-
-
-
-
-@Service
-public class PtsDashboardService {
-
-    private final PtsDashboardRepository repository;
-
-    public PtsDashboardService(PtsDashboardRepository repository) {
-        this.repository = repository;
-    }
-
-    public List<PtsDashboardDto> getDashboardData() {
-        return repository.fetchDashboardData();
-    }
-}
-
-
-
-
-
-
-
-
-@RestController
-@RequestMapping("/pts/dashboard")
-public class PtsDashboardController {
-
-    private final PtsDashboardService service;
-
-    public PtsDashboardController(PtsDashboardService service) {
-        this.service = service;
-    }
-
-    @GetMapping
-    public List<PtsDashboardDto> getDashboard() {
-        return service.getDashboardData();
-    }
-}
-
-
-
-
-
-
-
-
-// new repository 
-
-
-
-
-@Repository
-public class PtsDashboardRepository {
-
-    private final NamedParameterJdbcTemplate jdbcTemplate;
-
-    public PtsDashboardRepository(NamedParameterJdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
-
-    public List<PtsDashboardDto> fetchDashboardData() {
-
-        String sql =
-            "WITH preprocessed_data AS ( " +
-            "  SELECT USE_CASE_NO, USE_CASE_OWNERSHIP, USE_CASE_OWNER, " +
-            "         USE_CASE_ACCOUNTABLE_EXECUTIVE, USE_CASE_CATEGORY, " +
-            "         PROJECT_OVERALL_RAG_STATUS, SMT_ACCOUNTABLE_EXECUTIVE, " +
-            "         DELIVERABLE_OWNER, PROGRAM_NAME, " +
-            "         OCC_CONSENT_ORDER_ARTICLE, SUBPORTFOLIO_NAME, " +
-            "         RAG_STATUS, DUE_DATE, DERIVED_PROGRAM_CATEGORY, " +
-            "         WORK_EFFORT_NAME, INITIATIVE_NAME, " +
-            "         MILESTONE_ID, CO_TYPE " +
-            "  FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW " +
-            "  WHERE USE_CASE_NO IS NOT NULL " +
-            "    AND PROJECT_OVERALL_RAG_STATUS <> 'NA' " +
-            "    AND RAG_STATUS <> 'NA' " +
-            ") " +
-
-            "SELECT " +
-            "  MS.USE_CASE_NO, " +
-            "  MS.USE_CASE_OWNERSHIP, " +
-            "  MS.USE_CASE_OWNER, " +
-            "  MS.USE_CASE_ACCOUNTABLE_EXECUTIVE, " +
-            "  MS.USE_CASE_CATEGORY, " +
-            "  MS.PROJECT_OVERALL_RAG_STATUS, " +
-
-            "  UC.USE_CASE_DUE_DT_YEAR, " +
-            "  UC.USE_CASE_DUE_DT_QTR, " +
-            "  UC.USE_CASE_DUE_DT_MONTH, " +
-
-            "  MS.SMT_ACCOUNTABLE_EXECUTIVE, " +
-            "  MS.MILESTONE_OWNER, " +
-            "  DEL.DELIVERABLE_OWNER, " +
-
-            "  MS.MILESTONE_YEAR, " +
-            "  MS.MILESTONE_QTR, " +
-            "  MS.MILESTONE_MONTH, " +
-
-            "  DEL.DELIVERABLE_YEAR, " +
-            "  DEL.DELIVERABLE_QTR, " +
-            "  DEL.DELIVERABLE_MONTH, " +
-
-            "  DEL.INITIATIVE_NAME, " +
-            "  MS.PROGRAM_NAME, " +
-            "  DEL.WORK_EFFORT_NAME, " +
-            "  DEL.DERIVED_PROGRAM_CATEGORY, " +
-
-            "  MS.OCC_CONSENT_ORDER_ARTICLE, " +
-            "  MS.SUBPORTFOLIO_NAME, " +
-
-            "  MS.MILESTONE_RAG_STATUS, " +
-            "  DEL.DELIVERABLE_RAG_STATUS " +
-
-            "FROM ( " +
-            "  SELECT MILESTONE_ID, DELIVERABLE_OWNER, INITIATIVE_NAME, " +
-            "         WORK_EFFORT_NAME, DERIVED_PROGRAM_CATEGORY, " +
-            "         RAG_STATUS AS DELIVERABLE_RAG_STATUS, " +
-            "         EXTRACT(YEAR FROM DUE_DATE) AS DELIVERABLE_YEAR, " +
-            "         'Q' || TO_CHAR(DUE_DATE, 'Q') || ' ' || TO_CHAR(DUE_DATE, 'YYYY') AS DELIVERABLE_QTR, " +
-            "         TO_CHAR(DUE_DATE, 'Mon YYYY') AS DELIVERABLE_MONTH " +
-            "  FROM preprocessed_data " +
-            "  WHERE CO_TYPE = 'CO Deliverable' " +
-            ") DEL " +
-
-            "LEFT JOIN ( " +
-            "  SELECT MILESTONE_ID, USE_CASE_NO, USE_CASE_OWNERSHIP, " +
-            "         USE_CASE_OWNER, USE_CASE_ACCOUNTABLE_EXECUTIVE, " +
-            "         USE_CASE_CATEGORY, PROJECT_OVERALL_RAG_STATUS, " +
-            "         SMT_ACCOUNTABLE_EXECUTIVE, " +
-            "         DELIVERABLE_OWNER AS MILESTONE_OWNER, " +
-            "         PROGRAM_NAME, OCC_CONSENT_ORDER_ARTICLE, " +
-            "         SUBPORTFOLIO_NAME, " +
-            "         RAG_STATUS AS MILESTONE_RAG_STATUS, " +
-            "         EXTRACT(YEAR FROM DUE_DATE) AS MILESTONE_YEAR, " +
-            "         'Q' || TO_CHAR(DUE_DATE, 'Q') || ' ' || TO_CHAR(DUE_DATE, 'YYYY') AS MILESTONE_QTR, " +
-            "         TO_CHAR(DUE_DATE, 'Mon YYYY') AS MILESTONE_MONTH " +
-            "  FROM preprocessed_data " +
-            "  WHERE CO_TYPE = 'CO Milestone' " +
-            ") MS ON DEL.MILESTONE_ID = MS.MILESTONE_ID " +
-
-            "LEFT JOIN ( " +
-            "  SELECT USE_CASE_NO, " +
-            "         EXTRACT(YEAR FROM DUE_DATE) AS USE_CASE_DUE_DT_YEAR, " +
-            "         'Q' || TO_CHAR(DUE_DATE, 'Q') || ' ' || TO_CHAR(DUE_DATE, 'YYYY') AS USE_CASE_DUE_DT_QTR, " +
-            "         TO_CHAR(DUE_DATE, 'Mon YYYY') AS USE_CASE_DUE_DT_MONTH " +
-            "  FROM preprocessed_data " +
-            "  WHERE CO_TYPE = 'CO Milestone' " +
-            "    AND USE_CASE_CATEGORY = 'End Point Consumption' " +
-            ") UC ON MS.USE_CASE_NO = UC.USE_CASE_NO";
-
-        return jdbcTemplate.query(
-                sql,
-                new BeanPropertyRowMapper<>(PtsDashboardDto.class)
-        );
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-package com.yourcompany.pts.repository;
-
-import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
-import org.springframework.stereotype.Component;
-
-import java.util.*;
-import java.util.function.Function;
-
-@Component
-public class GlobalFilterSqlBuilder {
-
-    private static final Map<String, Function<GlobalFilterRequestDto, List<?>>> FILTER_MAP =
-            new LinkedHashMap<>();
-
-    static {
-        FILTER_MAP.put("USE_CASE_NO", GlobalFilterRequestDto::getUseCaseNo);
-        FILTER_MAP.put("USE_CASE_OWNERSHIP", GlobalFilterRequestDto::getUseCaseOwnership);
-        FILTER_MAP.put("USE_CASE_OWNER", GlobalFilterRequestDto::getUseCaseOwner);
-        FILTER_MAP.put("USE_CASE_ACCOUNTABLE_EXECUTIVE",
-                GlobalFilterRequestDto::getUseCaseAccountableExecutive);
-        FILTER_MAP.put("USE_CASE_CATEGORY", GlobalFilterRequestDto::getUseCaseCategory);
-        FILTER_MAP.put("PROJECT_OVERALL_RAG_STATUS",
-                GlobalFilterRequestDto::getProjectOverallRagStatus);
-
-        FILTER_MAP.put("USE_CASE_DUE_DT_YEAR", GlobalFilterRequestDto::getUseCaseDueDtYear);
-        FILTER_MAP.put("USE_CASE_DUE_DT_QTR", GlobalFilterRequestDto::getUseCaseDueDtQtr);
-        FILTER_MAP.put("USE_CASE_DUE_DT_MONTH", GlobalFilterRequestDto::getUseCaseDueDtMonth);
-
-        FILTER_MAP.put("SMT_ACCOUNTABLE_EXECUTIVE",
-                GlobalFilterRequestDto::getSmtAccountableExecutive);
-        FILTER_MAP.put("MILESTONE_OWNER", GlobalFilterRequestDto::getMilestoneOwner);
-        FILTER_MAP.put("DELIVERABLE_OWNER", GlobalFilterRequestDto::getDeliverableOwner);
-
-        FILTER_MAP.put("MILESTONE_YEAR", GlobalFilterRequestDto::getMilestoneYear);
-        FILTER_MAP.put("MILESTONE_QTR", GlobalFilterRequestDto::getMilestoneQtr);
-        FILTER_MAP.put("MILESTONE_MONTH", GlobalFilterRequestDto::getMilestoneMonth);
-
-        FILTER_MAP.put("DELIVERABLE_YEAR", GlobalFilterRequestDto::getDeliverableYear);
-        FILTER_MAP.put("DELIVERABLE_QTR", GlobalFilterRequestDto::getDeliverableQtr);
-        FILTER_MAP.put("DELIVERABLE_MONTH", GlobalFilterRequestDto::getDeliverableMonth);
-
-        FILTER_MAP.put("INITIATIVE_NAME", GlobalFilterRequestDto::getInitiativeName);
-        FILTER_MAP.put("PROGRAM_NAME", GlobalFilterRequestDto::getProgramName);
-        FILTER_MAP.put("WORK_EFFORT_NAME", GlobalFilterRequestDto::getWorkEffortName);
-        FILTER_MAP.put("DERIVED_PROGRAM_CATEGORY",
-                GlobalFilterRequestDto::getDerivedProgramCategory);
-        FILTER_MAP.put("OCC_CONSENT_ORDER_ARTICLE",
-                GlobalFilterRequestDto::getOccConsentOrderArticle);
-        FILTER_MAP.put("SUBPORTFOLIO_NAME", GlobalFilterRequestDto::getSubportfolioName);
-
-        FILTER_MAP.put("MILESTONE_RAG_STATUS",
-                GlobalFilterRequestDto::getMilestoneRagStatus);
-        FILTER_MAP.put("DELIVERABLE_RAG_STATUS",
-                GlobalFilterRequestDto::getDeliverableRagStatus);
-    }
-
-    public String buildRagStatusQuery(GlobalFilterRequestDto filter,
-                                      Map<String, Object> params) {
-
-        StringBuilder sql = new StringBuilder(
-                "SELECT PROJECT_OVERALL_RAG_STATUS, " +
-                "COUNT(DISTINCT USE_CASE_NO) AS USE_CASE_COUNT " +
-                "FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW " +
-                "WHERE CO_TYPE = 'CO Milestone' " +
-                "AND USE_CASE_NO IS NOT NULL " +
-                "AND PROJECT_OVERALL_RAG_STATUS <> 'NA' " +
-                "AND RAG_STATUS <> 'NA' "
-        );
-
-        for (Map.Entry<String, Function<GlobalFilterRequestDto, List<?>>> entry
-                : FILTER_MAP.entrySet()) {
-
-            List<?> values = entry.getValue().apply(filter);
-
-            if (values != null && !values.isEmpty()) {
-                sql.append(" AND ")
-                   .append(entry.getKey())
-                   .append(" IN (:")
-                   .append(entry.getKey())
-                   .append(")");
-                params.put(entry.getKey(), values);
-            }
-        }
-
-        sql.append(" GROUP BY PROJECT_OVERALL_RAG_STATUS");
-        return sql.toString();
-    }
-}
-
-
-
-
-
-
-
-
-
-
-package com.yourcompany.pts.util;
-
-import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-
-import java.util.List;
-
 public final class GlobalFilterSqlBuilder {
 
-// Private constructor to prevent instantiation  
-private GlobalFilterSqlBuilder() {}  
+    private GlobalFilterSqlBuilder() {}
 
-/**  
- * Add a single filter with IN clause  
- */  
-public static <T> void applyInFilter(  
-        StringBuilder sql,  
-        MapSqlParameterSource params,  
-        String columnName,  
-        String paramName,  
-        List<T> values) {  
+    public static String applyGlobalFilters(
+            String sql,
+            MapSqlParameterSource params,
+            GlobalFilterRequestDto req
+    ) {
 
-    if (values != null && !values.isEmpty()) {  
-        sql.append(" AND ")  
-           .append(columnName)  
-           .append(" IN (:")  
-           .append(paramName)  
-           .append(")");  
-        params.addValue(paramName, values);  
-    }  
-}  
+        /* ================= USE CASE ================= */
 
-/**  
- * Apply all filters from GlobalFilterRequestDto  
- */  
-public static void applyAllFilters(  
-        StringBuilder sql,  
-        MapSqlParameterSource params,  
-        GlobalFilterRequestDto filter) {  
+        sql = addInFilter(sql, params, "USE_CASE_NO", req.getUseCaseNo());
+        sql = addInFilter(sql, params, "USE_CASE_OWNERSHIP", req.getUseCaseOwnership());
+        sql = addInFilter(sql, params, "USE_CASE_OWNER", req.getUseCaseOwner());
+        sql = addInFilter(sql, params, "USE_CASE_ACCOUNTABLE_EXECUTIVE", req.getUseCaseAccountableExecutive());
+        sql = addInFilter(sql, params, "USE_CASE_CATEGORY", req.getUseCaseCategory());
+        sql = addInFilter(sql, params, "PROJECT_OVERALL_RAG_STATUS", req.getProjectOverallRagStatus());
 
-    applyInFilter(sql, params, "USE_CASE_NO", "useCaseNo", filter.getUseCaseNo());  
-    applyInFilter(sql, params, "USE_CASE_OWNERSHIP", "useCaseOwnership", filter.getUseCaseOwnership());  
-    applyInFilter(sql, params, "USE_CASE_OWNER", "useCaseOwner", filter.getUseCaseOwner());  
-    applyInFilter(sql, params, "USE_CASE_ACCOUNTABLE_EXECUTIVE", "useCaseAccountableExecutive", filter.getUseCaseAccountableExecutive());  
-    applyInFilter(sql, params, "USE_CASE_CATEGORY", "useCaseCategory", filter.getUseCaseCategory());  
-    applyInFilter(sql, params, "PROJECT_OVERALL_RAG_STATUS", "projectOverallRagStatus", filter.getProjectOverallRagStatus());  
+        /* ================= USE CASE DUE DATE (DERIVED) ================= */
 
-    applyInFilter(sql, params, "USE_CASE_DUE_DT_YEAR", "useCaseDueDtYear", filter.getUseCaseDueDtYear());  
-    applyInFilter(sql, params, "USE_CASE_DUE_DT_QTR", "useCaseDueDtQtr", filter.getUseCaseDueDtQtr());  
-    applyInFilter(sql, params, "USE_CASE_DUE_DT_MONTH", "useCaseDueDtMonth", filter.getUseCaseDueDtMonth());  
+        sql = addInFilter(sql, params, "USE_CASE_DUE_DT_YEAR", req.getUseCaseDueDtYear());
+        sql = addInFilter(sql, params, "USE_CASE_DUE_DT_QTR", req.getUseCaseDueDtQtr());
+        sql = addInFilter(sql, params, "USE_CASE_DUE_DT_MONTH", req.getUseCaseDueDtMonth());
 
-    applyInFilter(sql, params, "SMT_ACCOUNTABLE_EXECUTIVE", "smtAccountableExecutive", filter.getSmtAccountableExecutive());  
-    applyInFilter(sql, params, "MILESTONE_OWNER", "milestoneOwner", filter.getMilestoneOwner());  
-    applyInFilter(sql, params, "DELIVERABLE_OWNER", "deliverableOwner", filter.getDeliverableOwner());  
+        /* ================= OWNERS ================= */
 
-    applyInFilter(sql, params, "MILESTONE_YEAR", "milestoneYear", filter.getMilestoneYear());  
-    applyInFilter(sql, params, "MILESTONE_QTR", "milestoneQtr", filter.getMilestoneQtr());  
-    applyInFilter(sql, params, "MILESTONE_MONTH", "milestoneMonth", filter.getMilestoneMonth());  
+        sql = addInFilter(sql, params, "SMT_ACCOUNTABLE_EXECUTIVE", req.getSmtAccountableExecutive());
+        sql = addInFilter(sql, params, "MILESTONE_OWNER", req.getMilestoneOwner());
+        sql = addInFilter(sql, params, "DELIVERABLE_OWNER", req.getDeliverableOwner());
 
-    applyInFilter(sql, params, "DELIVERABLE_YEAR", "deliverableYear", filter.getDeliverableYear());  
-    applyInFilter(sql, params, "DELIVERABLE_QTR", "deliverableQtr", filter.getDeliverableQtr());  
-    applyInFilter(sql, params, "DELIVERABLE_MONTH", "deliverableMonth", filter.getDeliverableMonth());  
+        /* ================= MILESTONE DATE (DERIVED) ================= */
 
-    applyInFilter(sql, params, "INITIATIVE_NAME", "initiativeName", filter.getInitiativeName());  
-    applyInFilter(sql, params, "PROGRAM_NAME", "programName", filter.getProgramName());  
-    applyInFilter(sql, params, "WORK_EFFORT_NAME", "workEffortName", filter.getWorkEffortName());  
-    applyInFilter(sql, params, "DERIVED_PROGRAM_CATEGORY", "derivedProgramCategory", filter.getDerivedProgramCategory());  
-    applyInFilter(sql, params, "OCC_CONSENT_ORDER_ARTICLE", "occConsentOrderArticle", filter.getOccConsentOrderArticle());  
-    applyInFilter(sql, params, "SUBPORTFOLIO_NAME", "subportfolioName", filter.getSubportfolioName());  
+        sql = addInFilter(sql, params, "MILESTONE_YEAR", req.getMilestoneYear());
+        sql = addInFilter(sql, params, "MILESTONE_QTR", req.getMilestoneQtr());
+        sql = addInFilter(sql, params, "MILESTONE_MONTH", req.getMilestoneMonth());
 
-    applyInFilter(sql, params, "MILESTONE_RAG_STATUS", "milestoneRagStatus", filter.getMilestoneRagStatus());  
-    applyInFilter(sql, params, "DELIVERABLE_RAG_STATUS", "deliverableRagStatus", filter.getDeliverableRagStatus());  
-}
+        /* ================= DELIVERABLE DATE (DERIVED) ================= */
 
-}
+        sql = addInFilter(sql, params, "DELIVERABLE_YEAR", req.getDeliverableYear());
+        sql = addInFilter(sql, params, "DELIVERABLE_QTR", req.getDeliverableQtr());
+        sql = addInFilter(sql, params, "DELIVERABLE_MONTH", req.getDeliverableMonth());
 
+        /* ================= WORK EFFORT ================= */
 
+        sql = addInFilter(sql, params, "INITIATIVE_NAME", req.getInitiativeName());
+        sql = addInFilter(sql, params, "PROGRAM_NAME", req.getProgramName());
+        sql = addInFilter(sql, params, "WORK_EFFORT_NAME", req.getWorkEffortName());
+        sql = addInFilter(sql, params, "DERIVED_PROGRAM_CATEGORY", req.getDerivedProgramCategory());
 
+        /* ================= OTHER ATTRIBUTES ================= */
 
+        sql = addInFilter(sql, params, "OCC_CONSENT_ORDER_ARTICLE", req.getOccConsentOrderArticle());
+        sql = addInFilter(sql, params, "SUBPORTFOLIO_NAME", req.getSubportfolioName());
 
+        /* ================= RAG STATUS ================= */
 
+        sql = addInFilter(sql, params, "MILESTONE_RAG_STATUS", req.getMilestoneRagStatus());
+        sql = addInFilter(sql, params, "DELIVERABLE_RAG_STATUS", req.getDeliverableRagStatus());
 
-
-
-
-
-
-
-
-package com.yourcompany.pts.service;
-
-import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
-import com.yourcompany.pts.dto.response.RagStatusDataDto;
-import com.yourcompany.pts.dto.response.RagStatusResponseDto;
-import com.yourcompany.pts.repository.RagStatusRepository;
-import com.yourcompany.pts.util.GlobalFilterSqlBuilder;
-
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.stereotype.Service;
-
-import java.util.*;
-
-/**
- * Service for Use Cases by RAG Status pie chart
- */
-@Service
-public class RagStatusService {
-
-    private final RagStatusRepository ragStatusRepository;
-
-    public RagStatusService(RagStatusRepository ragStatusRepository) {
-        this.ragStatusRepository = ragStatusRepository;
-    }
-
-    /**
-     * Builds pie chart response for Use Cases by RAG Status
-     */
-    public RagStatusResponseDto getRagStatusPie(GlobalFilterRequestDto filterDto) {
-
-        // 1️⃣ Prepare SQL and parameters
-        StringBuilder sql = new StringBuilder(
-            "SELECT PROJECT_OVERALL_RAG_STATUS, " +
-            "COUNT(DISTINCT USE_CASE_NO) AS USE_CASE_COUNT " +
-            "FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW " +
-            "WHERE CO_TYPE = 'CO Milestone' " +
-            "AND USE_CASE_NO IS NOT NULL " +
-            "AND PROJECT_OVERALL_RAG_STATUS <> 'NA' " +
-            "AND RAG_STATUS <> 'NA'"
-        );
-
-        MapSqlParameterSource params = new MapSqlParameterSource();
-
-        // Apply all filters from request DTO
-        GlobalFilterSqlBuilder.applyAllFilters(sql, params, filterDto);
-
-        // 2️⃣ Fetch DB result using repository
-        List<Map<String, Object>> rows =
-                ragStatusRepository.fetchRagStatusCounts(sql.toString(), params);
-
-        // 3️⃣ Map DB rows → response data
-        List<RagStatusDataDto> data = new ArrayList<>();
-
-        for (Map<String, Object> row : rows) {
-
-            String ragStatus = (String) row.get("PROJECT_OVERALL_RAG_STATUS");
-            Integer count = ((Number) row.get("USE_CASE_COUNT")).intValue();
-
-            // Skip zero counts
-            if (count == null || count == 0) continue;
-
-            String className = "copts-donut-" + ragStatus.toLowerCase().replace(" ", "-");
-
-            data.add(new RagStatusDataDto(ragStatus, count, className));
-        }
-
-        // 4️⃣ Return final pie chart response
-        RagStatusResponseDto response = new RagStatusResponseDto();
-        response.setName("Use Cases by RAG Status");
-        response.setType("pie");
-        response.setColorByPoint(true);
-        response.setData(data);
-
-        return response;
+        return sql;
     }
 }
 
@@ -591,61 +69,15 @@ public class RagStatusService {
 
 
 
-
-
-
-package com.yourcompany.pts.repository;
-
-import com.yourcompany.pts.dto.request.GlobalFilterRequestDto;
-import com.yourcompany.pts.util.GlobalFilterSqlBuilder;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Repository;
-
-import java.util.List;
-import java.util.Map;
-
-/**
- * Repository to fetch Use Cases by RAG Status data
- */
-@Repository
-public class RagStatusRepository {
-
-    private final NamedParameterJdbcTemplate jdbcTemplate;
-
-    public RagStatusRepository(NamedParameterJdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+private static String addInFilter(
+        String sql,
+        MapSqlParameterSource params,
+        String column,
+        List<?> values
+) {
+    if (values != null && !values.isEmpty()) {
+        sql += " AND " + column + " IN (:" + column + ")";
+        params.addValue(column, values);
     }
-
-    /**
-     * Fetch RAG status counts applying global filters
-     *
-     * @param filter Global filter DTO
-     * @return List of maps containing PROJECT_OVERALL_RAG_STATUS and USE_CASE_COUNT
-     */
-    public List<Map<String, Object>> fetchRagStatusCounts(GlobalFilterRequestDto filter) {
-
-        // 1️⃣ Base SQL
-        StringBuilder sql = new StringBuilder(
-            "SELECT PROJECT_OVERALL_RAG_STATUS, " +
-            "COUNT(DISTINCT USE_CASE_NO) AS USE_CASE_COUNT " +
-            "FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW " +
-            "WHERE CO_TYPE = 'CO Milestone' " +
-            "AND USE_CASE_NO IS NOT NULL " +
-            "AND PROJECT_OVERALL_RAG_STATUS <> 'NA' " +
-            "AND RAG_STATUS <> 'NA'"
-        );
-
-        // 2️⃣ Prepare SQL parameters
-        MapSqlParameterSource params = new MapSqlParameterSource();
-
-        // Apply all filters from DTO using util
-        GlobalFilterSqlBuilder.applyAllFilters(sql, params, filter);
-
-        // 3️⃣ Add GROUP BY
-        sql.append(" GROUP BY PROJECT_OVERALL_RAG_STATUS");
-
-        // 4️⃣ Execute query and return results
-        return jdbcTemplate.queryForList(sql.toString(), params);
-    }
+    return sql;
 }
