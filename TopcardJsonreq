@@ -1,1 +1,43 @@
+{
+  "useCaseNo": ["UC-COM.3"],
+  "useCaseOwnership": ["Compliance"],
+  "useCaseOwner": ["Ferguson, James"],
+  "useCaseAccountableExecutive": ["Davies, James"],
+  "useCaseCategory": ["Data Governance"],
+  "projectOverallRagStatus": ["Green"],
 
+  "useCaseDueDtYear": ["2027"],
+  "useCaseDueDtQtr": ["Q2 2027"],
+  "useCaseDueDtMonth": ["May 2027"],
+
+  "smtAccountableExecutive": ["Davies, James"],
+
+  "milestoneOwner": ["Ferguson, James"],
+  "deliverableOwner": ["Bansal, Anupam"],
+
+  "milestoneYear": ["2026"],
+  "milestoneQtr": ["Q4 2026"],
+  "milestoneMonth": ["Nov 2026"],
+
+  "deliverableYear": ["2026"],
+  "deliverableQtr": ["Q4 2026"],
+  "deliverableMonth": ["Oct 2026"],
+
+  "initiativeName": [
+    "Enterprise Adoption of Data Governance Use Case Execution"
+  ],
+
+  "programName": ["Compliance Use Case Execution"],
+
+  "workEffortName": [
+    "Bring data under governance for Trade Surveillance Screening"
+  ],
+
+  "derivedProgramCategory": [],
+
+  "occConsentOrderArticle": ["V.2.c"],
+  "subportfolioName": ["Program Group Data"],
+
+  "milestoneRagStatus": ["Not Started"],
+  "deliverableRagStatus": ["Not Started"]
+}
