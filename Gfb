@@ -8,76 +8,76 @@ public final class GlobalFilterSqlBuilder {
             GlobalFilterRequestDto req
     ) {
 
+        StringBuilder sb = new StringBuilder(sql);
+
         /* ================= USE CASE ================= */
 
-        sql = addInFilter(sql, params, "USE_CASE_NO", req.getUseCaseNo());
-        sql = addInFilter(sql, params, "USE_CASE_OWNERSHIP", req.getUseCaseOwnership());
-        sql = addInFilter(sql, params, "USE_CASE_OWNER", req.getUseCaseOwner());
-        sql = addInFilter(sql, params, "USE_CASE_ACCOUNTABLE_EXECUTIVE", req.getUseCaseAccountableExecutive());
-        sql = addInFilter(sql, params, "USE_CASE_CATEGORY", req.getUseCaseCategory());
-        sql = addInFilter(sql, params, "PROJECT_OVERALL_RAG_STATUS", req.getProjectOverallRagStatus());
+        addInFilter(sb, params, "USE_CASE_NO", req.getUseCaseNo());
+        addInFilter(sb, params, "USE_CASE_OWNERSHIP", req.getUseCaseOwnership());
+        addInFilter(sb, params, "USE_CASE_OWNER", req.getUseCaseOwner());
+        addInFilter(sb, params, "USE_CASE_ACCOUNTABLE_EXECUTIVE", req.getUseCaseAccountableExecutive());
+        addInFilter(sb, params, "USE_CASE_CATEGORY", req.getUseCaseCategory());
+        addInFilter(sb, params, "PROJECT_OVERALL_RAG_STATUS", req.getProjectOverallRagStatus());
 
         /* ================= USE CASE DUE DATE (DERIVED) ================= */
 
-        sql = addInFilter(sql, params, "USE_CASE_DUE_DT_YEAR", req.getUseCaseDueDtYear());
-        sql = addInFilter(sql, params, "USE_CASE_DUE_DT_QTR", req.getUseCaseDueDtQtr());
-        sql = addInFilter(sql, params, "USE_CASE_DUE_DT_MONTH", req.getUseCaseDueDtMonth());
+        addInFilter(sb, params, "USE_CASE_DUE_DT_YEAR", req.getUseCaseDueDtYear());
+        addInFilter(sb, params, "USE_CASE_DUE_DT_QTR", req.getUseCaseDueDtQtr());
+        addInFilter(sb, params, "USE_CASE_DUE_DT_MONTH", req.getUseCaseDueDtMonth());
 
         /* ================= OWNERS ================= */
 
-        sql = addInFilter(sql, params, "SMT_ACCOUNTABLE_EXECUTIVE", req.getSmtAccountableExecutive());
-        sql = addInFilter(sql, params, "MILESTONE_OWNER", req.getMilestoneOwner());
-        sql = addInFilter(sql, params, "DELIVERABLE_OWNER", req.getDeliverableOwner());
+        addInFilter(sb, params, "SMT_ACCOUNTABLE_EXECUTIVE", req.getSmtAccountableExecutive());
+        addInFilter(sb, params, "MILESTONE_OWNER", req.getMilestoneOwner());
+        addInFilter(sb, params, "DELIVERABLE_OWNER", req.getDeliverableOwner());
 
         /* ================= MILESTONE DATE (DERIVED) ================= */
 
-        sql = addInFilter(sql, params, "MILESTONE_YEAR", req.getMilestoneYear());
-        sql = addInFilter(sql, params, "MILESTONE_QTR", req.getMilestoneQtr());
-        sql = addInFilter(sql, params, "MILESTONE_MONTH", req.getMilestoneMonth());
+        addInFilter(sb, params, "MILESTONE_YEAR", req.getMilestoneYear());
+        addInFilter(sb, params, "MILESTONE_QTR", req.getMilestoneQtr());
+        addInFilter(sb, params, "MILESTONE_MONTH", req.getMilestoneMonth());
 
         /* ================= DELIVERABLE DATE (DERIVED) ================= */
 
-        sql = addInFilter(sql, params, "DELIVERABLE_YEAR", req.getDeliverableYear());
-        sql = addInFilter(sql, params, "DELIVERABLE_QTR", req.getDeliverableQtr());
-        sql = addInFilter(sql, params, "DELIVERABLE_MONTH", req.getDeliverableMonth());
+        addInFilter(sb, params, "DELIVERABLE_YEAR", req.getDeliverableYear());
+        addInFilter(sb, params, "DELIVERABLE_QTR", req.getDeliverableQtr());
+        addInFilter(sb, params, "DELIVERABLE_MONTH", req.getDeliverableMonth());
 
         /* ================= WORK EFFORT ================= */
 
-        sql = addInFilter(sql, params, "INITIATIVE_NAME", req.getInitiativeName());
-        sql = addInFilter(sql, params, "PROGRAM_NAME", req.getProgramName());
-        sql = addInFilter(sql, params, "WORK_EFFORT_NAME", req.getWorkEffortName());
-        sql = addInFilter(sql, params, "DERIVED_PROGRAM_CATEGORY", req.getDerivedProgramCategory());
+        addInFilter(sb, params, "INITIATIVE_NAME", req.getInitiativeName());
+        addInFilter(sb, params, "PROGRAM_NAME", req.getProgramName());
+        addInFilter(sb, params, "WORK_EFFORT_NAME", req.getWorkEffortName());
+        addInFilter(sb, params, "DERIVED_PROGRAM_CATEGORY", req.getDerivedProgramCategory());
 
         /* ================= OTHER ATTRIBUTES ================= */
 
-        sql = addInFilter(sql, params, "OCC_CONSENT_ORDER_ARTICLE", req.getOccConsentOrderArticle());
-        sql = addInFilter(sql, params, "SUBPORTFOLIO_NAME", req.getSubportfolioName());
+        addInFilter(sb, params, "OCC_CONSENT_ORDER_ARTICLE", req.getOccConsentOrderArticle());
+        addInFilter(sb, params, "SUBPORTFOLIO_NAME", req.getSubportfolioName());
 
         /* ================= RAG STATUS ================= */
 
-        sql = addInFilter(sql, params, "MILESTONE_RAG_STATUS", req.getMilestoneRagStatus());
-        sql = addInFilter(sql, params, "DELIVERABLE_RAG_STATUS", req.getDeliverableRagStatus());
+        addInFilter(sb, params, "MILESTONE_RAG_STATUS", req.getMilestoneRagStatus());
+        addInFilter(sb, params, "DELIVERABLE_RAG_STATUS", req.getDeliverableRagStatus());
 
-        return sql;
+        return sb.toString();
     }
-}
 
+    /* ================= GENERIC IN FILTER ================= */
 
-
-
-
-
-
-
-private static String addInFilter(
-        String sql,
-        MapSqlParameterSource params,
-        String column,
-        List<?> values
-) {
-    if (values != null && !values.isEmpty()) {
-        sql += " AND " + column + " IN (:" + column + ")";
-        params.addValue(column, values);
+    private static void addInFilter(
+            StringBuilder sb,
+            MapSqlParameterSource params,
+            String column,
+            List<?> values
+    ) {
+        if (values != null && !values.isEmpty()) {
+            sb.append(" AND ")
+              .append(column)
+              .append(" IN (:")
+              .append(column)
+              .append(")");
+            params.addValue(column, values);
+        }
     }
-    return sql;
 }
