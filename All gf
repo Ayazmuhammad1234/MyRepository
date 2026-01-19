@@ -1,40 +1,164 @@
-public class GlobalFilterService {
+WITH preprocessed_data AS (
+    SELECT
+        USE_CASE_NO,
+        USE_CASE_OWNERSHIP,
+        USE_CASE_OWNER,
+        USE_CASE_ACCOUNTABLE_EXECUTIVE,
+        USE_CASE_CATEGORY,
+        PROJECT_OVERALL_RAG_STATUS,
+        SMT_ACCOUNTABLE_EXECUTIVE,
+        DELIVERABLE_OWNER,
+        PROGRAM_NAME,
+        OCC_CONSENT_ORDER_ARTICLE,
+        SUBPORTFOLIO_NAME,
+        RAG_STATUS,
+        DUE_DATE,
+        DERIVED_PROGRAM_CATEGORY,
+        WORK_EFFORT_NAME,
+        INITIATIVE_NAME,
+        MILESTONE_ID,
+        CO_TYPE
+    FROM CFMUDMCC.ROCK_CO_PTS_EXEC_DSHBRD_VW
+    WHERE USE_CASE_NO IS NOT NULL
+      AND PROJECT_OVERALL_RAG_STATUS <> 'NA'
+      AND RAG_STATUS <> 'NA'
+)
 
-    private final GlobalFilterRepository repository;
+SELECT DISTINCT
+    MS.USE_CASE_NO,
+    MS.USE_CASE_OWNERSHIP,
+    MS.USE_CASE_OWNER,
+    MS.USE_CASE_ACCOUNTABLE_EXECUTIVE,
+    MS.USE_CASE_CATEGORY,
+    MS.PROJECT_OVERALL_RAG_STATUS,
+    UCDate.USE_CASE_DUE_DT_YEAR,
+    UCDate.USE_CASE_DUE_DT_QTR,
+    UCDate.USE_CASE_DUE_DT_MONTH,
+    MS.SMT_ACCOUNTABLE_EXECUTIVE,
+    MS.MILESTONE_OWNER,
+    Del.DELIVERABLE_OWNER,
+    MS.MILESTONE_YEAR,
+    MS.MILESTONE_QTR,
+    MS.MILESTONE_MONTH,
+    Del.DELIVERABLE_YEAR,
+    Del.DELIVERABLE_QTR,
+    Del.DELIVERABLE_MONTH,
+    Del.INITIATIVE_NAME,
+    MS.PROGRAM_NAME,
+    Del.WORK_EFFORT_NAME,
+    Del.DERIVED_PROGRAM_CATEGORY,
+    MS.OCC_CONSENT_ORDER_ARTICLE,
+    MS.SUBPORTFOLIO_NAME,
+    MS.MILESTONE_RAG_STATUS,
+    Del.DELIVERABLE_RAG_STATUS
+FROM (
+    SELECT
+        MILESTONE_ID,
+        USE_CASE_NO,
+        USE_CASE_OWNERSHIP,
+        USE_CASE_OWNER,
+        USE_CASE_ACCOUNTABLE_EXECUTIVE,
+        USE_CASE_CATEGORY,
+        PROJECT_OVERALL_RAG_STATUS,
+        SMT_ACCOUNTABLE_EXECUTIVE,
+        DELIVERABLE_OWNER AS MILESTONE_OWNER,
+        PROGRAM_NAME,
+        OCC_CONSENT_ORDER_ARTICLE,
+        SUBPORTFOLIO_NAME,
+        RAG_STATUS AS MILESTONE_RAG_STATUS,
+        EXTRACT(YEAR FROM DUE_DATE) AS MILESTONE_YEAR,
+        'Q' || TO_CHAR(DUE_DATE,'Q') || ' ' || TO_CHAR(DUE_DATE,'YYYY') AS MILESTONE_QTR,
+        TO_CHAR(DUE_DATE,'Mon YYYY') AS MILESTONE_MONTH
+    FROM preprocessed_data
+    WHERE CO_TYPE = 'CO Milestone'
+) MS
+LEFT JOIN (
+    SELECT
+        USE_CASE_NO,
+        EXTRACT(YEAR FROM DUE_DATE) AS USE_CASE_DUE_DT_YEAR,
+        'Q' || TO_CHAR(DUE_DATE,'Q') || ' ' || TO_CHAR(DUE_DATE,'YYYY') AS USE_CASE_DUE_DT_QTR,
+        TO_CHAR(DUE_DATE,'Mon YYYY') AS USE_CASE_DUE_DT_MONTH
+    FROM preprocessed_data
+    WHERE CO_TYPE = 'CO Milestone'
+      AND USE_CASE_CATEGORY = 'End Point Consumption'
+) UCDate
+ON MS.USE_CASE_NO = UCDate.USE_CASE_NO
+LEFT JOIN (
+    SELECT
+        MILESTONE_ID,
+        DELIVERABLE_OWNER,
+        INITIATIVE_NAME,
+        WORK_EFFORT_NAME,
+        DERIVED_PROGRAM_CATEGORY,
+        RAG_STATUS AS DELIVERABLE_RAG_STATUS,
+        EXTRACT(YEAR FROM DUE_DATE) AS DELIVERABLE_YEAR,
+        'Q' || TO_CHAR(DUE_DATE,'Q') || ' ' || TO_CHAR(DUE_DATE,'YYYY') AS DELIVERABLE_QTR,
+        TO_CHAR(DUE_DATE,'Mon YYYY') AS DELIVERABLE_MONTH
+    FROM preprocessed_data
+    WHERE CO_TYPE = 'CO Deliverable'
+) Del
+ON MS.MILESTONE_ID = Del.MILESTONE_ID
 
-    public List<GlobalFilterRowDto> getGlobalFilters() {
+WHERE
+    MS.USE_CASE_NO = 'UC-COM.3'
+AND MS.USE_CASE_OWNERSHIP = 'Compliance'
+AND MS.USE_CASE_OWNER = 'Ferguson, James'
+AND MS.USE_CASE_ACCOUNTABLE_EXECUTIVE = 'Davies, James'
+AND MS.USE_CASE_CATEGORY = 'Data Governance'
+AND MS.PROJECT_OVERALL_RAG_STATUS = 'Green'
 
-        log.info("Service: Fetching global filters");
+AND UCDate.USE_CASE_DUE_DT_YEAR = 2027
+AND UCDate.USE_CASE_DUE_DT_QTR = 'Q2 2027'
+AND UCDate.USE_CASE_DUE_DT_MONTH = 'May 2027'
 
-        List<GlobalFilterRowDto> data = repository.fetchGlobalFilterData();
+AND MS.SMT_ACCOUNTABLE_EXECUTIVE = 'Davies, James'
+AND MS.MILESTONE_OWNER = 'Ferguson, James'
+AND Del.DELIVERABLE_OWNER = 'Bansal, Anupam'
 
-        if (data == null || data.isEmpty()) {
-            throw new DataNotFoundException("No global filter data found");
-        }
+AND MS.MILESTONE_YEAR = 2026
+AND MS.MILESTONE_QTR = 'Q4 2026'
+AND MS.MILESTONE_MONTH = 'Nov 2026'
 
-        return data;
-    }
-}
+AND Del.DELIVERABLE_YEAR = 2026
+AND Del.DELIVERABLE_QTR = 'Q4 2026'
+AND Del.DELIVERABLE_MONTH = 'Oct 2026'
+
+AND Del.INITIATIVE_NAME =
+    'Enterprise Adoption of Data Governance Use Case Execution'
+
+AND MS.PROGRAM_NAME = 'Compliance Use Case Execution'
+
+AND Del.WORK_EFFORT_NAME =
+    'Bring data under governance for Trade Surveillance Screening'
+
+AND Del.DERIVED_PROGRAM_CATEGORY = ''
+
+AND MS.OCC_CONSENT_ORDER_ARTICLE = 'V.2.c'
+AND MS.SUBPORTFOLIO_NAME = 'Program Group Data'
+
+AND MS.MILESTONE_RAG_STATUS = 'Not Started'
+AND Del.DELIVERABLE_RAG_STATUS = 'Not Started';
 
 
 
-@RestController
-@RequestMapping("/pts")
-@Api(tags = "PTS Global Filters")
-@Slf4j
-@RequiredArgsConstructor
-public class GlobalFilterController {
 
-    private final GlobalFilterService service;
 
-    @GetMapping("/global-filters")
-    @ApiOperation("Get all global filters data")
-    @ApiResponses({
-        @ApiResponse(code = 200, message = "Global filters fetched successfully"),
-        @ApiResponse(code = 404, message = "No data found"),
-        @ApiResponse(code = 500, message = "Internal server error")
-    })
-    public ResponseEntity<List<GlobalFilterRowDto>> getGlobalFilters() {
+
+
+
+
+
+
+
+///////////
+
+
+
+
+
+
+
+public ResponseEntity<List<GlobalFilterRowDto>> getGlobalFilters() {
 
         log.info("Controller: GET /pts/global-filters");
 
