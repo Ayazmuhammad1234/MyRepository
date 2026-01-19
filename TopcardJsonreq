@@ -1,40 +1,46 @@
 {
-  "useCaseNo": ["UC-COM.3"],
-  "useCaseOwnership": ["Compliance"],
-  "useCaseOwner": ["Ferguson, James"],
-  "useCaseAccountableExecutive": ["Davies, James"],
-  "useCaseCategory": ["Data Governance"],
-  "projectOverallRagStatus": ["Green"],
+  "USE_CASE_NO": ["UC-COM.3"],
+  "USE_CASE_OWNERSHIP": ["Compliance"],
+  "USE_CASE_OWNER": ["Ferguson, James"],
+  "USE_CASE_ACCOUNTABLE_EXECUTIVE": ["Davies, James"],
+  "USE_CASE_CATEGORY": ["Data Governance"],
+  "PROJECT_OVERALL_RAG_STATUS": ["Green"],
 
-  "useCaseDueDtYear": ["2027"],
-  "useCaseDueDtQtr": ["Q2 2027"],
-  "useCaseDueDtMonth": ["May 2027"],
+  "USE_CASE_DUE_DT_YEAR": ["2027"],
+  "USE_CASE_DUE_DT_QTR": ["Q2 2027"],
+  "USE_CASE_DUE_DT_MONTH": ["May 2027"],
 
-  "smtAccountableExecutive": ["Davies, James"],
+  "SMT_ACCOUNTABLE_EXECUTIVE": ["Davies, James"],
 
-  "milestoneOwner": ["Ferguson, James"],
-  "deliverableOwner": ["Bansal, Anupam"],
+  "MILESTONE_OWNER": ["Ferguson, James"],
+  "DELIVERABLE_OWNER": ["Bansal, Anupam"],
 
-  "milestoneYear": ["2026"],
-  "milestoneQtr": ["Q4 2026"],
-  "milestoneMonth": ["Nov 2026"],
+  "MILESTONE_YEAR": ["2026"],
+  "MILESTONE_QTR": ["Q4 2026"],
+  "MILESTONE_MONTH": ["Nov 2026"],
 
-  "deliverableYear": ["2026"],
-  "deliverableQtr": ["Q4 2026"],
-  "deliverableMonth": ["Oct 2026"],
+  "DELIVERABLE_YEAR": ["2026"],
+  "DELIVERABLE_QTR": ["Q4 2026"],
+  "DELIVERABLE_MONTH": ["Oct 2026"],
 
-  "initiativeName": [
+  "INITIATIVE_NAME": [
     "Enterprise Adoption of Data Governance Use Case Execution"
   ],
 
-  "programName": ["Compliance Use Case Execution"],
+  "PROGRAM_NAME": ["Compliance Use Case Execution"],
 
-  "workEffortName": [
+  "WORK_EFFORT_NAME": [
     "Bring data under governance for Trade Surveillance Screening"
   ],
 
-  "derivedProgramCategory": [],
+  "DERIVED_PROGRAM_CATEGORY": [""],
 
+  "OCC_CONSENT_ORDER_ARTICLE": ["V.2.c"],
+  "SUBPORTFOLIO_NAME": ["Program Group Data"],
+
+  "MILESTONE_RAG_STATUS": ["Not Started"],
+  "DELIVERABLE_RAG_STATUS": ["Not Started"]
+}
   "occConsentOrderArticle": ["V.2.c"],
   "subportfolioName": ["Program Group Data"],
 
