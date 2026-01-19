@@ -1,3 +1,197 @@
+public final class GlobalFilterSqlBuilder {
+
+    private GlobalFilterSqlBuilder() {}
+
+    public static String applyGlobalFilters(
+            String sql,
+            MapSqlParameterSource params,
+            GlobalFilterRequestDto req
+    ) {
+
+        /* ================= USE CASE ================= */
+
+        sql = addIn(sql, params, "USE_CASE_NO", req.getUseCaseNo());
+        sql = addIn(sql, params, "USE_CASE_OWNERSHIP", req.getUseCaseOwnership());
+        sql = addIn(sql, params, "USE_CASE_OWNER", req.getUseCaseOwner());
+        sql = addIn(sql, params, "USE_CASE_ACCOUNTABLE_EXECUTIVE", req.getUseCaseAccountableExecutive());
+        sql = addIn(sql, params, "USE_CASE_CATEGORY", req.getUseCaseCategory());
+        sql = addIn(sql, params, "PROJECT_OVERALL_RAG_STATUS", req.getProjectOverallRagStatus());
+
+        /* ================= USE CASE DUE DATE (DERIVED) ================= */
+
+        sql = addDerivedDateFilter(
+                sql, params, "CO Milestone",
+                "EXTRACT(YEAR FROM DUE_DATE)",
+                "USE_CASE_DUE_DT_YEAR",
+                req.getUseCaseDueDtYear()
+        );
+
+        sql = addDerivedDateFilter(
+                sql, params, "CO Milestone",
+                "('Q' || TO_CHAR(DUE_DATE,'Q') || ' ' || TO_CHAR(DUE_DATE,'YYYY'))",
+                "USE_CASE_DUE_DT_QTR",
+                req.getUseCaseDueDtQtr()
+        );
+
+        sql = addDerivedDateFilter(
+                sql, params, "CO Milestone",
+                "TO_CHAR(DUE_DATE,'Mon YYYY')",
+                "USE_CASE_DUE_DT_MONTH",
+                req.getUseCaseDueDtMonth()
+        );
+
+        /* ================= OWNERS ================= */
+
+        sql = addIn(sql, params, "SMT_ACCOUNTABLE_EXECUTIVE", req.getSmtAccountableExecutive());
+
+        sql = addInWithCoType(
+                sql, params, "CO Milestone",
+                "OWNER", "MILESTONE_OWNER",
+                req.getMilestoneOwner()
+        );
+
+        sql = addInWithCoType(
+                sql, params, "CO Deliverable",
+                "OWNER", "DELIVERABLE_OWNER",
+                req.getDeliverableOwner()
+        );
+
+        /* ================= MILESTONE DATE (DERIVED) ================= */
+
+        sql = addDerivedDateFilter(
+                sql, params, "CO Milestone",
+                "EXTRACT(YEAR FROM DUE_DATE)",
+                "MILESTONE_YEAR",
+                req.getMilestoneYear()
+        );
+
+        sql = addDerivedDateFilter(
+                sql, params, "CO Milestone",
+                "('Q' || TO_CHAR(DUE_DATE,'Q') || ' ' || TO_CHAR(DUE_DATE,'YYYY'))",
+                "MILESTONE_QTR",
+                req.getMilestoneQtr()
+        );
+
+        sql = addDerivedDateFilter(
+                sql, params, "CO Milestone",
+                "TO_CHAR(DUE_DATE,'Mon YYYY')",
+                "MILESTONE_MONTH",
+                req.getMilestoneMonth()
+        );
+
+        /* ================= DELIVERABLE DATE (DERIVED) ================= */
+
+        sql = addDerivedDateFilter(
+                sql, params, "CO Deliverable",
+                "EXTRACT(YEAR FROM DUE_DATE)",
+                "DELIVERABLE_YEAR",
+                req.getDeliverableYear()
+        );
+
+        sql = addDerivedDateFilter(
+                sql, params, "CO Deliverable",
+                "('Q' || TO_CHAR(DUE_DATE,'Q') || ' ' || TO_CHAR(DUE_DATE,'YYYY'))",
+                "DELIVERABLE_QTR",
+                req.getDeliverableQtr()
+        );
+
+        sql = addDerivedDateFilter(
+                sql, params, "CO Deliverable",
+                "TO_CHAR(DUE_DATE,'Mon YYYY')",
+                "DELIVERABLE_MONTH",
+                req.getDeliverableMonth()
+        );
+
+        /* ================= WORK EFFORT ================= */
+
+        sql = addIn(sql, params, "INITIATIVE_NAME", req.getInitiativeName());
+        sql = addIn(sql, params, "PROGRAM_NAME", req.getProgramName());
+        sql = addIn(sql, params, "WORK_EFFORT_NAME", req.getWorkEffortName());
+        sql = addIn(sql, params, "DERIVED_PROGRAM_CATEGORY", req.getDerivedProgramCategory());
+
+        /* ================= OTHER ATTRIBUTES ================= */
+
+        sql = addIn(sql, params, "OCC_CONSENT_ORDER_ARTICLE", req.getOccConsentOrderArticle());
+        sql = addIn(sql, params, "SUBPORTFOLIO_NAME", req.getSubportfolioName());
+
+        /* ================= RAG STATUS ================= */
+
+        sql = addInWithCoType(
+                sql, params, "CO Milestone",
+                "RAG_STATUS", "MILESTONE_RAG_STATUS",
+                req.getMilestoneRagStatus()
+        );
+
+        sql = addInWithCoType(
+                sql, params, "CO Deliverable",
+                "RAG_STATUS", "DELIVERABLE_RAG_STATUS",
+                req.getDeliverableRagStatus()
+        );
+
+        return sql;
+    }
+
+    /* ================= HELPERS ================= */
+
+    private static String addIn(
+            String sql,
+            MapSqlParameterSource params,
+            String column,
+            List<?> values
+    ) {
+        if (values != null && !values.isEmpty()) {
+            sql += " AND " + column + " IN (:" + column + ")";
+            params.addValue(column, values);
+        }
+        return sql;
+    }
+
+    private static String addInWithCoType(
+            String sql,
+            MapSqlParameterSource params,
+            String coType,
+            String column,
+            String param,
+            List<?> values
+    ) {
+        if (values != null && !values.isEmpty()) {
+            sql += " AND CO_TYPE = '" + coType + "'"
+                 + " AND " + column + " IN (:" + param + ")";
+            params.addValue(param, values);
+        }
+        return sql;
+    }
+
+    private static String addDerivedDateFilter(
+            String sql,
+            MapSqlParameterSource params,
+            String coType,
+            String derivedExpression,
+            String param,
+            List<?> values
+    ) {
+        if (values != null && !values.isEmpty()) {
+            sql += " AND CO_TYPE = '" + coType + "'"
+                 + " AND " + derivedExpression + " IN (:" + param + ")";
+            params.addValue(param, values);
+        }
+        return sql;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+/////////////
+
+
+
 @Service
 @RequiredArgsConstructor
 public class RagStatusServiceImpl implements RagStatusService {
