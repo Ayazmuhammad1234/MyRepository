@@ -1,3 +1,39 @@
+public RagStatusResponseDto getRagStatus(GlobalFilterRequestDto request) {
+
+    log.info("Service: Fetching Top card1 data");
+
+    List<RagStatusCountDto> dbResult =
+            repository.getRagStatusCount(request);
+
+    if (dbResult == null || dbResult.isEmpty()) {
+        throw new DataNotFoundException("No RAG status data found");
+    }
+
+    List<RagStatusDataDto> ragStatusData = dbResult.stream()
+            .map(item -> new RagStatusDataDto(
+                    item.getProjectOverallRagStatus(),
+                    item.getUseCaseCount(),
+                    "copts-donut-" +
+                            item.getProjectOverallRagStatus()
+                                    .toLowerCase()
+                                    .trim()
+                                    .replace(" ", "-")
+            ))
+            .collect(Collectors.toList());
+
+    return new RagStatusResponseDto(ragStatusData);
+}
+
+
+
+
+
+
+
+
+
+
+
 @Service
 public class UseCaseDashboardService {
 
