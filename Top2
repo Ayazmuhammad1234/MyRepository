@@ -1,3 +1,51 @@
+@Service
+public class UseCaseDashboardService {
+
+    @Autowired
+    private UseCaseDashboardRepository repository;
+
+    public ChartResponseDto getChartData(Integer year, String quarter, String ragStatus, String ownership) {
+
+        List<Map<String, Object>> rows =
+                repository.fetchOwnershipSummaryRaw(year, quarter, ragStatus, ownership);
+
+        List<String> category = rows.stream()
+                .map(r -> String.valueOf(r.get("USE_CASE_OWNERSHIP")))
+                .toList();
+
+        List<SeriesDto> series = List.of(
+                build("End Point Consumption", "ENDPOINT_CONSUMPTION_UCCOUNT", null, rows),
+                build("Data Governance", "DATA_GOVERNANCE_UCCOUNT", null, rows),
+                build("Requirements", "REQUIREMENTS_UCCOUNT", "column", rows),
+                build("Solutioning", "SOLUTIONING_UCCOUNT", null, rows)
+        );
+
+        return new ChartResponseDto(category, series);
+    }
+
+    private SeriesDto build(String name, String col, String type, List<Map<String, Object>> rows) {
+        return new SeriesDto(
+                name,
+                type,
+                rows.stream()
+                        .map(r -> r.get(col) == null ? 0 : ((Number) r.get(col)).intValue())
+                        .toList()
+        );
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 public class ChartResponseDto {
 
     private List<String> category;
