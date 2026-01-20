@@ -1,0 +1,10 @@
+@Data
+public class OwnershipCategoryCountDto {
+
+    private String useCaseOwnership;
+
+    private Integer requirementsUcCount;
+    private Integer dataGovernanceUcCount;
+    private Integer solutioningUcCount;
+    private Integer endpointConsumptionUcCount;
+}
