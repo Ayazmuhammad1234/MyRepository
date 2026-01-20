@@ -1,3 +1,98 @@
+@Service
+public class UseCaseDashboardService {
+
+    @Autowired
+    private UseCaseDashboardRepository repository;
+
+    public List<UseCaseOwnershipSummaryDto> getOwnershipSummary() {
+
+        List<Map<String, Object>> rawResult =
+                repository.fetchOwnershipSummaryRaw();
+
+        return rawResult.stream().map(row -> {
+            UseCaseOwnershipSummaryDto dto = new UseCaseOwnershipSummaryDto();
+
+            dto.setUseCaseOwnership(
+                    (String) row.get("USE_CASE_OWNERSHIP"));
+
+            dto.setRequirementsUCCount(
+                    ((Number) row.get("REQUIREMENTS_UCCOUNT")).intValue());
+
+            dto.setDataGovernanceUCCount(
+                    ((Number) row.get("DATA_GOVERNANCE_UCCOUNT")).intValue());
+
+            dto.setSolutioningUCCount(
+                    ((Number) row.get("SOLUTIONING_UCCOUNT")).intValue());
+
+            dto.setEndPointConsumptionUCCount(
+                    ((Number) row.get("END_POINT_CONSUMPTION_UCCOUNT")).intValue());
+
+            return dto;
+        }).toList();
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+@Service
+public class UseCaseDashboardService {
+
+@Autowired  
+private UseCaseDashboardRepository repository;  
+
+public Map<String, Object> getChartData() {  
+    List<Map<String, Object>> rows = repository.fetchOwnershipSummaryRaw();  
+
+    Map<String, Object> dataObject = new HashMap<>();  
+    dataObject.put("category", rows.stream()  
+            .map(r -> r.get("USE_CASE_OWNERSHIP"))  
+            .toList());  
+
+    String[] seriesNames = { "Requirements", "Data Governance", "Solutioning", "End Point Consumption" };  
+    String[] keys = { "REQUIREMENTS_UCCOUNT", "DATA_GOVERNANCE_UCCOUNT", "SOLUTIONING_UCCOUNT", "END_POINT_CONSUMPTION_UCCOUNT" };  
+
+    List<Map<String, Object>> series = new ArrayList<>();  
+    for (int i = 0; i < seriesNames.length; i++) {  
+        String name = seriesNames[i];  
+        String key = keys[i];  
+        List<Integer> data = rows.stream()  
+                .map(r -> ((Number) r.get(key)).intValue())  
+                .toList();  
+
+        Map<String, Object> seriesEntry = new HashMap<>();  
+        seriesEntry.put("name", name);  
+        seriesEntry.put("data", data);  
+
+        // Optional: add type for specific series  
+        if ("Requirements".equals(name)) {  
+            seriesEntry.put("type", "column");  
+        }  
+
+        series.add(seriesEntry);  
+    }  
+
+    dataObject.put("series", series);  
+    return dataObject;  
+}
+
+} Create repository layer
+
+
+
+
+
+
+
+
+
 @Data
 public class OwnershipCategoryCountDto {
 
