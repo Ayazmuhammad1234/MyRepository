@@ -4,6 +4,77 @@ public class UseCaseDashboardService {
     @Autowired
     private UseCaseDashboardRepository repository;
 
+    public ChartResponseDto getChartData(
+            Integer year,
+            String quarter,
+            String ragStatus,
+            String ownership
+    ) {
+
+        List<Map<String, Object>> rows =
+                repository.fetchOwnershipSummaryRaw(year, quarter, ragStatus, ownership);
+
+        // category
+        List<String> category = rows.stream()
+                .map(r -> (String) r.get("USE_CASE_OWNERSHIP"))
+                .toList();
+
+        // series
+        SeriesDto endPoint = new SeriesDto(
+                "End Point Consumption",
+                null,
+                rows.stream()
+                        .map(r -> ((Number) r.get("ENDPOINT_CONSUMPTION_UCCOUNT")).intValue())
+                        .toList()
+        );
+
+        SeriesDto dataGov = new SeriesDto(
+                "Data Governance",
+                null,
+                rows.stream()
+                        .map(r -> ((Number) r.get("DATA_GOVERNANCE_UCCOUNT")).intValue())
+                        .toList()
+        );
+
+        SeriesDto req = new SeriesDto(
+                "Requirements",
+                "column",
+                rows.stream()
+                        .map(r -> ((Number) r.get("REQUIREMENTS_UCCOUNT")).intValue())
+                        .toList()
+        );
+
+        SeriesDto sol = new SeriesDto(
+                "Solutioning",
+                null,
+                rows.stream()
+                        .map(r -> ((Number) r.get("SOLUTIONING_UCCOUNT")).intValue())
+                        .toList()
+        );
+
+        ChartResponseDto response = new ChartResponseDto();
+        response.setCategory(category);
+        response.setSeries(List.of(endPoint, dataGov, req, sol));
+
+        return response;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+@Service
+public class UseCaseDashboardService {
+
+    @Autowired
+    private UseCaseDashboardRepository repository;
+
     public void printDynamicData() {
 
         List<Map<String, Object>> rows = repository.fetchOwnershipSummaryRaw();
