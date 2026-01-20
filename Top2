@@ -4,6 +4,34 @@ public class UseCaseDashboardService {
     @Autowired
     private UseCaseDashboardRepository repository;
 
+    public void printDynamicData() {
+
+        List<Map<String, Object>> rows = repository.fetchOwnershipSummaryRaw();
+
+        if (rows.isEmpty()) {
+            System.out.println("No data found");
+            return;
+        }
+
+        rows.forEach(row -> {
+            row.forEach((key, value) -> {
+                System.out.println(key + " = " + value);
+            });
+            System.out.println("------------------------------");
+        });
+    }
+}
+
+
+
+
+
+@Service
+public class UseCaseDashboardService {
+
+    @Autowired
+    private UseCaseDashboardRepository repository;
+
     public List<UseCaseOwnershipSummaryDto> getOwnershipSummary() {
 
         List<Map<String, Object>> rawResult =
