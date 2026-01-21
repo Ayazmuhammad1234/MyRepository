@@ -1,0 +1,6 @@
+private String getRagColor(String ragStatus) {
+    if ("Green".equalsIgnoreCase(ragStatus)) return "#008000";
+    if ("Red".equalsIgnoreCase(ragStatus)) return "#FF0000";
+    if ("Amber".equalsIgnoreCase(ragStatus)) return "#FFA500";
+    return "";
+}
