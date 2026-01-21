@@ -1,0 +1,35 @@
+public ChartResponseDto buildTopcard2Chart(List<Map<String, Object>> dbResult) {
+
+    List<String> categories = new ArrayList<>();
+
+    List<Integer> blue = new ArrayList<>();
+    List<Integer> amber = new ArrayList<>();
+    List<Integer> green = new ArrayList<>();
+    List<Integer> red = new ArrayList<>();
+    List<Integer> notStarted = new ArrayList<>();
+
+    for (Map<String, Object> row : dbResult) {
+
+        categories.add((String) row.get("DUE_YEAR_CATEGORY"));
+
+        blue.add(getInt(row.get("BLUE_MSCOUNT")));
+        amber.add(getInt(row.get("AMBER_MSCOUNT")));
+        green.add(getInt(row.get("GREEN_MSCOUNT")));
+        red.add(getInt(row.get("RED_MSCOUNT")));
+        notStarted.add(getInt(row.get("NOTSTARTED_MSCOUNT")));
+    }
+
+    List<ChartSeriesDto> series = List.of(
+        new ChartSeriesDto("Blue", blue),
+        new ChartSeriesDto("Amber", amber),
+        new ChartSeriesDto("Green", green),
+        new ChartSeriesDto("Red", red),
+        new ChartSeriesDto("Not Started", notStarted)
+    );
+
+    return new ChartResponseDto(categories, series);
+}
+
+private Integer getInt(Object value) {
+    return value == null ? 0 : ((Number) value).intValue();
+}
