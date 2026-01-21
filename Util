@@ -1,0 +1,34 @@
+public static boolean hasNoFilters(GlobalFilterRequestDto filters) {
+    if (filters == null) return true;
+
+    return (isEmpty(filters.getUseCaseNo()) &&
+            isEmpty(filters.getUseCaseOwnership()) &&
+            isEmpty(filters.getUseCaseOwner()) &&
+            isEmpty(filters.getUseCaseAccountableExecutive()) &&
+            isEmpty(filters.getUseCaseCategory()) &&
+            isEmpty(filters.getProjectOverallRagStatus()) &&
+            isEmpty(filters.getUseCaseDueDtYear()) &&
+            isEmpty(filters.getUseCaseDueDtQtr()) &&
+            isEmpty(filters.getUseCaseDueDtMonth()) &&
+            isEmpty(filters.getSmtAccountableExecutive()) &&
+            isEmpty(filters.getMilestoneOwner()) &&
+            isEmpty(filters.getDeliverableOwner()) &&
+            isEmpty(filters.getMilestoneYear()) &&
+            isEmpty(filters.getMilestoneQtr()) &&
+            isEmpty(filters.getMilestoneMonth()) &&
+            isEmpty(filters.getDeliverableYear()) &&
+            isEmpty(filters.getDeliverableQtr()) &&
+            isEmpty(filters.getDeliverableMonth()) &&
+            isEmpty(filters.getInitiativeName()) &&
+            isEmpty(filters.getProgramName()) &&
+            isEmpty(filters.getWorkEffortName()) &&
+            isEmpty(filters.getDerivedProgramCategory()) &&
+            isEmpty(filters.getOccConsentOrderArticle()) &&
+            isEmpty(filters.getSubportfolioName()) &&
+            isEmpty(filters.getMilestoneRagStatus()) &&
+            isEmpty(filters.getDeliverableRagStatus()));
+}
+
+private static boolean isEmpty(List<?> list) {
+    return list == null || list.isEmpty();
+}
