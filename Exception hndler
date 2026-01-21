@@ -1,5 +1,24 @@
 package com.citi.rock.gwy.api.pts.exception;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
+@Data
+@AllArgsConstructor
+public class ApiError {
+    private int status;
+    private String message;
+    private long timestamp;
+}
+
+
+
+
+
+
+
+package com.citi.rock.gwy.api.pts.exception;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
