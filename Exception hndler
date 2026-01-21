@@ -1,0 +1,79 @@
+package com.citi.rock.gwy.api.pts.exception;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.sql.SQLException;
+
+@Slf4j
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    /* ================= DATABASE ERRORS ================= */
+
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<ApiError> handleDataAccessException(DataAccessException ex) {
+        log.error("Database error", ex);
+        return buildError(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Database error occurred");
+    }
+
+    @ExceptionHandler(SQLException.class)
+    public ResponseEntity<ApiError> handleSQLException(SQLException ex) {
+        log.error("SQL exception", ex);
+        return buildError(HttpStatus.INTERNAL_SERVER_ERROR,
+                "SQL execution failed");
+    }
+
+    /* ================= BUSINESS ERRORS ================= */
+
+    @ExceptionHandler(DataNotFoundException.class)
+    public ResponseEntity<ApiError> handleDataNotFound(DataNotFoundException ex) {
+        log.warn("No data found", ex);
+        return buildError(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    /* ================= REQUEST VALIDATION ================= */
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiError> handleValidationException(
+            MethodArgumentNotValidException ex) {
+
+        String message = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .findFirst()
+                .map(err -> err.getField() + " " + err.getDefaultMessage())
+                .orElse("Invalid request");
+
+        return buildError(HttpStatus.BAD_REQUEST, message);
+    }
+
+    /* ================= FALLBACK ================= */
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiError> handleGenericException(Exception ex) {
+        log.error("Unexpected error", ex);
+        return buildError(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Unexpected server error");
+    }
+
+    /* ================= HELPER ================= */
+
+    private ResponseEntity<ApiError> buildError(
+            HttpStatus status, String message) {
+
+        ApiError error = new ApiError(
+                status.value(),
+                message,
+                System.currentTimeMillis()
+        );
+
+        return new ResponseEntity<>(error, status);
+    }
+}
