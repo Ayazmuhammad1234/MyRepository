@@ -1,0 +1,65 @@
+package com.citi.rock.gwy.api.pts.controller;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import java.util.Collections;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import com.citi.rock.gwy.api.pts.service.PtsDashboardService;
+
+import static org.mockito.Mockito.*;
+
+@WebMvcTest(PtsDashboardController.class)
+class PtsDashboardControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private PtsDashboardService service;
+
+    @Test
+    void shouldReturnFilters() throws Exception {
+        when(service.getGlobalFilters()).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/pts/getFilters"))
+               .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldReturnTopcard1() throws Exception {
+        when(service.getRagStatus(any())).thenReturn(new TopcardResponseDto());
+
+        mockMvc.perform(post("/pts/topcard1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+               .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldReturnTopcard2() throws Exception {
+        when(service.getTopcard2ByRBCM(any())).thenReturn(new TopcardResponseDto());
+
+        mockMvc.perform(post("/pts/topcard2")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+               .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldReturnTopcard3() throws Exception {
+        when(service.getTopcard3(any())).thenReturn(new TopcardResponseDto());
+
+        mockMvc.perform(post("/pts/topcard3")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+               .andExpect(status().isOk());
+    }
+}
