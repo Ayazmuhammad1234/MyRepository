@@ -1,3 +1,63 @@
+package com.citi.rock.gwy.api.pts;
+
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.Collections;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import com.citi.rock.gwy.api.pts.controller.PtsDashboardController;
+import com.citi.rock.gwy.api.pts.service.PtsDashboardService;
+
+@ExtendWith(MockitoExtension.class)
+class PtsDashboardControllerTest {
+
+    private MockMvc mockMvc;
+
+    @InjectMocks
+    private PtsDashboardController controller;
+
+    @Mock
+    private PtsDashboardService service;
+
+    @BeforeEach
+    void setup() {
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    }
+
+    @Test
+    void testGetGlobalFilters() throws Exception {
+        // Mock service response
+        when(service.getGlobalFilters()).thenReturn(Collections.emptyList());
+
+        // Call controller endpoint and verify
+        mockMvc.perform(get("/pts/getFilters")
+                        .contentType(MediaType.APPLICATION_JSON))
+               .andExpect(status().isOk())
+               .andExpect(content().json("[]"));
+    }
+}
+
+
+
+
+
+
+
+
+
+
 class PtsDashboardControllerTest {
 
     private MockMvc mockMvc;
