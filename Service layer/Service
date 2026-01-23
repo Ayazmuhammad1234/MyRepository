@@ -1,0 +1,149 @@
+package com.citi.rock.gwy.api.pts.service;
+
+import com.citi.rock.gwy.api.pts.dto.*;
+import com.citi.rock.gwy.api.pts.repository.PtsDashboardRepository;
+
+import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+@Slf4j
+public class PtsDashboardService {
+
+    private final PtsDashboardRepository repository;
+
+    // Define constants for RAG colors
+    private static final String GREEN = "Green";
+    private static final String RED = "Red";
+    private static final String AMBER = "Amber";
+    private static final String BLUE = "Blue";
+    private static final String NOT_STARTED = "Not Started";
+
+    private static final Map<String, String> RAG_COLOR_MAP = Map.of(
+            GREEN, "#008000",
+            RED, "#FF0000",
+            AMBER, "#FFA500",
+            BLUE, "#0000FF",
+            NOT_STARTED, "#2B547E"
+    );
+
+    @Autowired
+    public PtsDashboardService(PtsDashboardRepository repository) {
+        this.repository = repository;
+    }
+
+    private String getRagColor(String ragStatus) {
+        return RAG_COLOR_MAP.getOrDefault(ragStatus, "");
+    }
+
+    public List<GlobalFilterResponseDto> getGlobalFilters() {
+        log.info("Service: Fetching global filters");
+        List<GlobalFilterResponseDto> data = repository.fetchGlobalFilterData();
+        return data == null ? Collections.emptyList() : data;
+    }
+
+    public TopcardResponseDto getRagStatus(GlobalFilterRequestDto request) {
+        log.info("Service: Fetching Top card1 data");
+
+        List<RagStatusCountDto> dbResult = repository.getRagStatusCount(request);
+        if (dbResult == null || dbResult.isEmpty()) {
+            return new TopcardResponseDto(Collections.emptyList(), Collections.emptyList());
+        }
+
+        List<RagStatusDataDto> ragStatusData = dbResult.stream()
+                .map(item -> new RagStatusDataDto(
+                        item.getProjectOverallRagStatus(),
+                        item.getUseCaseCount(),
+                        getRagColor(item.getProjectOverallRagStatus()),
+                        "copts-donut-" + item.getProjectOverallRagStatus().toLowerCase().replace(" ", "-")
+                ))
+                .collect(Collectors.toList());
+
+        List<SeriesDto> series = List.of(
+                new SeriesDto("Use Cases by RAG Status", "pie", true, ragStatusData)
+        );
+
+        return new TopcardResponseDto(Collections.emptyList(), series);
+    }
+
+    public TopcardResponseDto getTopcard2ByRBCM(GlobalFilterRequestDto request) {
+        log.info("Service: Fetching Top card2 data");
+
+        List<Map<String, Object>> rows = repository.getTopcard2ByRBCM(request);
+        if (rows == null || rows.isEmpty()) {
+            return new TopcardResponseDto(Collections.emptyList(), Collections.emptyList());
+        }
+
+        List<String> categories = rows.stream()
+                .map(r -> (String) r.get("USE_CASE_OWNERSHIP"))
+                .collect(Collectors.toList());
+
+        SeriesDto endPoint = new SeriesDto(
+                "End Point Consumption",
+                "column",
+                rows.stream().map(r -> ((Number) r.get("ENDPOINT_CONSUMPTION_UCCOUNT")).intValue()).toList()
+        );
+        SeriesDto dataGov = new SeriesDto(
+                "Data Governance",
+                "column",
+                rows.stream().map(r -> ((Number) r.get("DATA_GOVERNANCE_UCCOUNT")).intValue()).toList()
+        );
+        SeriesDto requirements = new SeriesDto(
+                "Requirements",
+                "column",
+                rows.stream().map(r -> ((Number) r.get("REQUIREMENTS_UCCOUNT")).intValue()).toList()
+        );
+        SeriesDto solutioning = new SeriesDto(
+                "Solutioning",
+                "column",
+                rows.stream().map(r -> ((Number) r.get("SOLUTIONING_UCCOUNT")).intValue()).toList()
+        );
+
+        List<SeriesDto> series = List.of(endPoint, dataGov, requirements, solutioning);
+        return new TopcardResponseDto(categories, series);
+    }
+
+    public TopcardResponseDto getTopcard3(GlobalFilterRequestDto request) {
+        log.info("Service: Fetching Top card3 data");
+
+        List<Map<String, Object>> rows = repository.getTopcard3ByData(request);
+        if (rows == null || rows.isEmpty()) {
+            return new TopcardResponseDto(Collections.emptyList(), Collections.emptyList());
+        }
+
+        List<String> categories = rows.stream()
+                .map(r -> (String) r.get("DUE_YEAR_CATEGORY"))
+                .collect(Collectors.toList());
+
+        List<Integer> blue = rows.stream()
+                .map(r -> ((Number) r.get("BLUE_MSCOUNT")).intValue())
+                .toList();
+        List<Integer> amber = rows.stream()
+                .map(r -> ((Number) r.get("AMBER_MSCOUNT")).intValue())
+                .toList();
+        List<Integer> green = rows.stream()
+                .map(r -> ((Number) r.get("GREEN_MSCOUNT")).intValue())
+                .toList();
+        List<Integer> red = rows.stream()
+                .map(r -> ((Number) r.get("RED_MSCOUNT")).intValue())
+                .toList();
+        List<Integer> notStarted = rows.stream()
+                .map(r -> ((Number) r.get("NOTSTARTED_MSCOUNT")).intValue())
+                .toList();
+
+        List<SeriesDto> series = List.of(
+                new SeriesDto("Blue", "column", getRagColor(BLUE), blue),
+                new SeriesDto("Amber", "column", getRagColor(AMBER), amber),
+                new SeriesDto("Green", "column", getRagColor(GREEN), green),
+                new SeriesDto("Red", "column", getRagColor(RED), red),
+                new SeriesDto("Not Started", "column", getRagColor(NOT_STARTED), notStarted)
+        );
+
+        return new TopcardResponseDto(categories, series);
+    }
+}
