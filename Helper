@@ -1,3 +1,12 @@
+private int getIntValue(Map<String, Object> row, String column) {
+    return Optional.ofNullable((Number) row.get(column))
+            .map(Number::intValue)
+            .orElse(0);
+}
+
+
+
+
 private String getRagColor(String ragStatus) {
     if ("Green".equalsIgnoreCase(ragStatus)) return "#008000";
     if ("Red".equalsIgnoreCase(ragStatus)) return "#FF0000";
