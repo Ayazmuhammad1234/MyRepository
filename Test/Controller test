@@ -1,3 +1,43 @@
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.Collections;
+
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@WebMvcTest(PtsDashboardController.class)
+class PtsDashboardControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private PtsDashboardService service;
+
+    @Test
+    void getGlobalFilters_shouldReturnOk() throws Exception {
+        // Mock the service
+        when(service.getGlobalFilters()).thenReturn(Collections.emptyList());
+
+        // Perform GET request
+        mockMvc.perform(get("/pts/getFilters"))
+                .andExpect(status().isOk());
+    }
+}
+
+
+
+
+
+
+
+
+
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
