@@ -1,0 +1,84 @@
+package com.citi.rock.gwy.api.pts.repository;
+
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+import com.citi.rock.gwy.api.pts.dto.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.*;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import java.util.*;
+
+class PtsDashboardRepositoryTest {
+
+    @Mock
+    private NamedParameterJdbcTemplate jdbcTemplate;
+
+    @InjectMocks
+    private PtsDashboardRepository repository;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    /* ================= GLOBAL FILTERS ================= */
+    @Test
+    void fetchGlobalFilterData_shouldReturnList() {
+        List<GlobalFilterResponseDto> mockList = List.of(new GlobalFilterResponseDto());
+        when(jdbcTemplate.query(anyString(), any(BeanPropertyRowMapper.class)))
+                .thenReturn(mockList);
+
+        List<GlobalFilterResponseDto> result = repository.fetchGlobalFilterData();
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(jdbcTemplate).query(anyString(), any(BeanPropertyRowMapper.class));
+    }
+
+    /* ================= TOP CARD 1 ================= */
+    @Test
+    void getRagStatusCount_shouldReturnList() {
+        List<RagStatusCountDto> mockList = List.of(new RagStatusCountDto());
+        when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(BeanPropertyRowMapper.class)))
+                .thenReturn(mockList);
+
+        List<RagStatusCountDto> result = repository.getRagStatusCount(new GlobalFilterRequestDto());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(jdbcTemplate).query(anyString(), any(MapSqlParameterSource.class), any(BeanPropertyRowMapper.class));
+    }
+
+    /* ================= TOP CARD 2 ================= */
+    @Test
+    void getTopcard2ByRBCM_shouldReturnList() {
+        List<Map<String, Object>> mockList = List.of(new HashMap<>());
+        when(jdbcTemplate.queryForList(anyString(), any(MapSqlParameterSource.class)))
+                .thenReturn(mockList);
+
+        List<Map<String, Object>> result = repository.getTopcard2ByRBCM(new GlobalFilterRequestDto());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(jdbcTemplate).queryForList(anyString(), any(MapSqlParameterSource.class));
+    }
+
+    /* ================= TOP CARD 3 ================= */
+    @Test
+    void getTopcard3ByData_shouldReturnList() {
+        List<Map<String, Object>> mockList = List.of(new HashMap<>());
+        when(jdbcTemplate.queryForList(anyString(), any(MapSqlParameterSource.class)))
+                .thenReturn(mockList);
+
+        List<Map<String, Object>> result = repository.getTopcard3ByData(new GlobalFilterRequestDto());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(jdbcTemplate).queryForList(anyString(), any(MapSqlParameterSource.class));
+    }
+}
