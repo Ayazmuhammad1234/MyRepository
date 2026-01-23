@@ -1,3 +1,31 @@
+class PtsDashboardControllerTest {
+
+    private MockMvc mockMvc;
+
+    @InjectMocks
+    private PtsDashboardController controller;
+
+    @Mock
+    private PtsDashboardService service;
+
+    @BeforeEach
+    void setup() {
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    }
+
+    @Test
+    void testGetGlobalFilters() throws Exception {
+        when(service.getGlobalFilters()).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/pts/getFilters")
+                        .contentType(MediaType.APPLICATION_JSON))
+               .andExpect(status().isOk())
+               .andExpect(content().json("[]"));
+    }
+}
+
+
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
