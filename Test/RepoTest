@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.util.*;
 
+@SuppressWarnings("unchecked") // Avoid unchecked warnings
 class PtsDashboardRepositoryTest {
 
     @Mock
@@ -35,6 +36,53 @@ class PtsDashboardRepositoryTest {
 
         List<GlobalFilterResponseDto> result = repository.fetchGlobalFilterData();
 
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(jdbcTemplate).query(anyString(), any(BeanPropertyRowMapper.class));
+    }
+
+    /* ================= TOP CARD 1 ================= */
+    @Test
+    void getRagStatusCount_shouldReturnList() {
+        List<RagStatusCountDto> mockList = List.of(new RagStatusCountDto());
+        when(jdbcTemplate.query(anyString(), any(MapSqlParameterSource.class), any(BeanPropertyRowMapper.class)))
+                .thenReturn(mockList);
+
+        List<RagStatusCountDto> result = repository.getRagStatusCount(new GlobalFilterRequestDto());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(jdbcTemplate).query(anyString(), any(MapSqlParameterSource.class), any(BeanPropertyRowMapper.class));
+    }
+
+    /* ================= TOP CARD 2 ================= */
+    @Test
+    void getTopcard2ByRBCM_shouldReturnList() {
+        List<Map<String, Object>> mockList = List.of(new HashMap<String, Object>());
+        when(jdbcTemplate.queryForList(anyString(), any(MapSqlParameterSource.class)))
+                .thenReturn(mockList);
+
+        List<Map<String, Object>> result = repository.getTopcard2ByRBCM(new GlobalFilterRequestDto());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(jdbcTemplate).queryForList(anyString(), any(MapSqlParameterSource.class));
+    }
+
+    /* ================= TOP CARD 3 ================= */
+    @Test
+    void getTopcard3ByData_shouldReturnList() {
+        List<Map<String, Object>> mockList = List.of(new HashMap<String, Object>());
+        when(jdbcTemplate.queryForList(anyString(), any(MapSqlParameterSource.class)))
+                .thenReturn(mockList);
+
+        List<Map<String, Object>> result = repository.getTopcard3ByData(new GlobalFilterRequestDto());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(jdbcTemplate).queryForList(anyString(), any(MapSqlParameterSource.class));
+    }
+}
         assertNotNull(result);
         assertEquals(1, result.size());
         verify(jdbcTemplate).query(anyString(), any(BeanPropertyRowMapper.class));
