@@ -1,3 +1,32 @@
+@WebMvcTest(PtsDashboardController.class)
+class PtsDashboardControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private PtsDashboardService service;
+
+    @Test
+    void getGlobalFilters_shouldReturnOk() throws Exception {
+
+        // mock service response
+        when(service.getGlobalFilters())
+                .thenReturn(Collections.emptyList());
+
+        // call controller endpoint
+        mockMvc.perform(get("/pts/getFilters"))
+                .andExpect(status().isOk());
+    }
+}
+
+
+
+
+
+
+
+
 package com.citi.rock.gwy.api.pts.controller;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
