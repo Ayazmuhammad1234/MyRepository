@@ -3,6 +3,154 @@ package com.citi.rock.gwy.api.pts.service;
 import com.citi.rock.gwy.api.pts.dto.*;
 import com.citi.rock.gwy.api.pts.repository.PtsDashboardRepository;
 
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class PtsDashboardServiceTest {
+
+    @Mock
+    private PtsDashboardRepository repository;
+
+    @InjectMocks
+    private PtsDashboardService service;
+
+    /* ================= getGlobalFilters ================= */
+
+    @Test
+    void getGlobalFilters_shouldReturnEmptyList_whenRepositoryReturnsNull() {
+        when(repository.fetchGlobalFilterData()).thenReturn(null);
+
+        List<GlobalFilterResponseDto> result = service.getGlobalFilters();
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getGlobalFilters_shouldReturnData_whenRepositoryReturnsData() {
+        List<GlobalFilterResponseDto> mockData = List.of(new GlobalFilterResponseDto());
+        when(repository.fetchGlobalFilterData()).thenReturn(mockData);
+
+        List<GlobalFilterResponseDto> result = service.getGlobalFilters();
+
+        assertEquals(1, result.size());
+    }
+
+    /* ================= getRagStatus ================= */
+
+    @Test
+    void getRagStatus_shouldReturnEmptyResponse_whenNoData() {
+        when(repository.getRagStatusCount(any())).thenReturn(Collections.emptyList());
+
+        TopcardResponseDto response = service.getRagStatus(new GlobalFilterRequestDto());
+
+        assertTrue(response.getCategory().isEmpty());
+        assertTrue(response.getSeries().isEmpty());
+    }
+
+    @Test
+    void getRagStatus_shouldReturnSeries_whenDataPresent() {
+        RagStatusCountDto dto = new RagStatusCountDto();
+        dto.setProjectOverallRagStatus("Green");
+        dto.setUseCaseCount(5);
+
+        when(repository.getRagStatusCount(any()))
+                .thenReturn(List.of(dto));
+
+        TopcardResponseDto response = service.getRagStatus(new GlobalFilterRequestDto());
+
+        assertEquals(1, response.getSeries().size());
+
+        SeriesDto series = (SeriesDto) response.getSeries().get(0);
+        assertEquals("Use Cases by RAG Status", series.getName());
+        assertEquals("pie", series.getType());
+        assertFalse(series.getData().isEmpty());
+    }
+
+    /* ================= getTopcard2ByRBCM ================= */
+
+    @Test
+    void getTopcard2_shouldReturnEmptyResponse_whenNoData() {
+        when(repository.getTopcard2ByRBCM(any())).thenReturn(Collections.emptyList());
+
+        TopcardResponseDto response = service.getTopcard2ByRBCM(new GlobalFilterRequestDto());
+
+        assertTrue(response.getCategory().isEmpty());
+        assertTrue(response.getSeries().isEmpty());
+    }
+
+    @Test
+    void getTopcard2_shouldReturnCategoriesAndSeries_whenDataPresent() {
+        Map<String, Object> row = new HashMap<>();
+        row.put("USE_CASE_OWNERSHIP", "Internal");
+        row.put("ENDPOINT_CONSUMPTION_UCCOUNT", 1);
+        row.put("DATA_GOVERNANCE_UCCOUNT", 2);
+        row.put("REQUIREMENTS_UCCOUNT", 3);
+        row.put("SOLUTIONING_UCCOUNT", 4);
+
+        when(repository.getTopcard2ByRBCM(any()))
+                .thenReturn(List.of(row));
+
+        TopcardResponseDto response = service.getTopcard2ByRBCM(new GlobalFilterRequestDto());
+
+        assertEquals(1, response.getCategory().size());
+        assertEquals(4, response.getSeries().size());
+    }
+
+    /* ================= getTopcard3 ================= */
+
+    @Test
+    void getTopcard3_shouldReturnEmptyResponse_whenNoData() {
+        when(repository.getTopcard3ByData(any())).thenReturn(Collections.emptyList());
+
+        TopcardResponseDto response = service.getTopcard3(new GlobalFilterRequestDto());
+
+        assertTrue(response.getCategory().isEmpty());
+        assertTrue(response.getSeries().isEmpty());
+    }
+
+    @Test
+    void getTopcard3_shouldReturnSeries_whenDataPresent() {
+        Map<String, Object> row = new HashMap<>();
+        row.put("DUE_YEAR_CATEGORY", "2024-Q1");
+        row.put("BLUE_MSCOUNT", 1);
+        row.put("AMBER_MSCOUNT", 2);
+        row.put("GREEN_MSCOUNT", 3);
+        row.put("RED_MSCOUNT", 4);
+        row.put("NOTSTARTED_MSCOUNT", 5);
+
+        when(repository.getTopcard3ByData(any()))
+                .thenReturn(List.of(row));
+
+        TopcardResponseDto response = service.getTopcard3(new GlobalFilterRequestDto());
+
+        assertEquals(1, response.getCategory().size());
+        assertEquals(5, response.getSeries().size());
+    }
+}
+
+
+
+
+
+
+
+
+
+package com.citi.rock.gwy.api.pts.service;
+
+import com.citi.rock.gwy.api.pts.dto.*;
+import com.citi.rock.gwy.api.pts.repository.PtsDashboardRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
