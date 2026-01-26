@@ -1,0 +1,48 @@
+import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.List;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+
+class GlobalFilterSqlBuilderTest {
+
+    @Test
+    void shouldReturnSameSqlWhenRequestIsNull() {
+        StringBuilder sb = new StringBuilder("SELECT * FROM TEST WHERE 1=1");
+        MapSqlParameterSource params = new MapSqlParameterSource();
+
+        String sql = GlobalFilterSqlBuilder.applyGlobalFilters(sb, params, null);
+
+        assertEquals("SELECT * FROM TEST WHERE 1=1", sql);
+        assertTrue(params.getValues().isEmpty());
+    }
+
+    @Test
+    void shouldAppendInClauseWhenFilterIsPresent() {
+        StringBuilder sb = new StringBuilder("SELECT * FROM TEST WHERE 1=1");
+        MapSqlParameterSource params = new MapSqlParameterSource();
+
+        GlobalFilterRequestDto req = new GlobalFilterRequestDto();
+        req.setUseCaseNo(List.of("UC1", "UC2"));
+
+        String sql = GlobalFilterSqlBuilder.applyGlobalFilters(sb, params, req);
+
+        assertTrue(sql.contains("USE_CASE_NO IN (:USE_CASE_NO)"));
+        assertEquals(List.of("UC1", "UC2"), params.getValue("USE_CASE_NO"));
+    }
+
+    @Test
+    void shouldNotAppendFilterWhenListIsEmpty() {
+        StringBuilder sb = new StringBuilder("SELECT * FROM TEST WHERE 1=1");
+        MapSqlParameterSource params = new MapSqlParameterSource();
+
+        GlobalFilterRequestDto req = new GlobalFilterRequestDto();
+        req.setUseCaseNo(List.of());
+
+        String sql = GlobalFilterSqlBuilder.applyGlobalFilters(sb, params, req);
+
+        assertFalse(sql.contains("USE_CASE_NO IN"));
+        assertTrue(params.getValues().isEmpty());
+    }
+}
