@@ -1,0 +1,45 @@
+
+
+@Autowired
+private JdbcTemplate jdbcTemplate;
+
+public Map<String, Object> getExpectedResult() {
+
+    List<Map<String, Object>> rows =
+        jdbcTemplate.queryForList("YOUR SQL HERE");
+
+    List<String> columns =
+        rows.isEmpty()
+            ? List.of()
+            : new ArrayList<>(rows.get(0).keySet());
+
+    // 🔹 Totals calculation (dynamic-friendly)
+    Map<String, Object> totalsRow = new LinkedHashMap<>();
+
+    for (String column : columns) {
+        totalsRow.put(column, 0);
+    }
+
+    // Label column
+    if (columns.contains("USE_CASE_OWNER")) {
+        totalsRow.put("USE_CASE_OWNER", "Total");
+    }
+
+    for (Map<String, Object> row : rows) {
+        for (String column : columns) {
+            Object value = row.get(column);
+
+            if (value instanceof Number) {
+                int sum = ((Number) totalsRow.get(column)).intValue()
+                        + ((Number) value).intValue();
+                totalsRow.put(column, sum);
+            }
+        }
+    }
+
+    return Map.of(
+        "columns", columns,
+        "rows", rows,
+        "Totals", List.of(totalsRow)
+    );
+}
