@@ -1,4 +1,12 @@
 
+@GetMapping("/data")
+public ResponseEntity<Map<String, Object>> getDashboardData() {
+    return ResponseEntity.ok(dashboardService.getExpectedResult());
+}
+
+
+
+
 
 @Autowired
 private JdbcTemplate jdbcTemplate;
