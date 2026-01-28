@@ -1,3 +1,35 @@
+public Map<String, Object> getPieChartData() {
+
+    List<Map<String, Object>> rows =
+            jdbcTemplate.queryForList("YOUR SQL HERE");
+
+    List<Map<String, Object>> pieData = new ArrayList<>();
+
+    for (Map<String, Object> row : rows) {
+
+        String status = (String) row.get("PROJECT_OVERALL_RAG_STATUS");
+        Number count = (Number) row.get("USE_CASE_COUNT");
+
+        Map<String, Object> dataPoint = new LinkedHashMap<>();
+        dataPoint.put("name", status);
+        dataPoint.put("y", count.intValue());
+        dataPoint.put("className", "copts-donut-" + status.toLowerCase());
+
+        pieData.add(dataPoint);
+    }
+
+    Map<String, Object> series = new LinkedHashMap<>();
+    series.put("Type", "pie");
+    series.put("data", pieData);
+
+    return Map.of("Series", List.of(series));
+}
+
+
+
+
+
+
 package com.yourcompany.pts.util;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
