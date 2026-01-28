@@ -1,0 +1,52 @@
+import lombok.Data;
+
+@Data
+public class Topcard3Dto {
+    private String dueYearCategory;
+    private int blueMsCount;
+    private int amberMsCount;
+    private int greenMsCount;
+    private int redMsCount;
+    private int notStartedMsCount;
+}
+
+
+@Data
+public class OwnershipCountDto {
+    private String useCaseOwnership;
+    private int endpointConsumptionUcCount;
+    private int dataGovernanceUcCount;
+    private int requirementsUcCount;
+    private int solutioningUcCount;
+}
+
+
+@Data
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class SeriesDto<T> {
+    private String name;
+    private String type;
+    private Boolean colorByPoint;
+    private String color;
+    private List<T> data;
+}
+
+
+
+
+@Data
+public class PieDataDto {
+    private String name;
+    private Integer y;
+    private String color;
+    private String className;
+}
+
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class TopcardResponseDto {
+    private List<?> category;
+    private List<?> series;
+}
