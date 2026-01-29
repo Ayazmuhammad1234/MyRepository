@@ -1,3 +1,60 @@
+@Service
+@Slf4j
+public class RbcmGridService {
+
+    private final PtsDashboardRepository repository;
+
+    public RbcmGridService(PtsDashboardRepository repository) {
+        this.repository = repository;
+    }
+
+    public GridResponseDto getRbcmDeliverableGrid(GlobalFilterRequestDto request) {
+
+        log.info("Service: Fetching RBCM Deliverable Grid data");
+
+        List<Map<String, Object>> rows =
+                repository.getRbcmDeliverableGrid(request);
+
+        if (rows == null || rows.isEmpty()) {
+            return new GridResponseDto(
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    Collections.emptyList()
+            );
+        }
+
+        // 1️⃣ Columns (preserve order)
+        List<String> columns = new ArrayList<>(rows.get(0).keySet());
+
+        // 2️⃣ Totals calculation
+        Map<String, Object> totalsRow = new LinkedHashMap<>();
+
+        for (String column : columns) {
+            if ("USE_CASE_OWNER".equalsIgnoreCase(column)) {
+                totalsRow.put(column, "Total");
+            } else {
+                int sum = rows.stream()
+                        .map(r -> (Number) r.get(column))
+                        .filter(Objects::nonNull)
+                        .mapToInt(Number::intValue)
+                        .sum();
+                totalsRow.put(column, sum);
+            }
+        }
+
+        return new GridResponseDto(
+                columns,
+                rows,
+                List.of(totalsRow)
+        );
+    }
+}
+
+
+
+
+
+
 package com.citi.rock.gwy.api.pts.service;
 
 import com.citi.rock.gwy.api.pts.dto.*;
