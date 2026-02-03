@@ -1,3 +1,45 @@
+
+
+public class GridMapper {
+
+    private GridMapper() {
+        // private constructor to prevent instantiation
+    }
+
+    /**
+     * Convert a ResultSet to a LinkedHashMap preserving column order
+     */
+    public static Map<String, Object> mapRow(ResultSet rs) throws SQLException {
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
+
+        Map<String, Object> row = new LinkedHashMap<>();
+        for (int i = 1; i <= columnCount; i++) {
+            row.put(metaData.getColumnLabel(i), rs.getObject(i));
+        }
+        return row;
+    }
+
+    /**
+     * Convert entire ResultSet to a List of LinkedHashMap
+     */
+    public static List<Map<String, Object>> mapResultSet(ResultSet rs) throws SQLException {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        while (rs.next()) {
+            rows.add(mapRow(rs));
+        }
+        return rows;
+    }
+}
+
+
+
+
+
+
+
+
+
 public List<Map<String, Object>> getMilestoneRBCMDeliverableGrid(
         GlobalFilterRequestDto request) {
 
