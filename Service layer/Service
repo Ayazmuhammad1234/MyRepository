@@ -1,3 +1,32 @@
+
+Map<String, Object> totalsRow = new LinkedHashMap<>();
+        if (rows.isEmpty()) return totalsRow;
+
+        for (String col : columns) {
+            Object sampleValue = rows.get(0).get(col);
+
+            if (sampleValue instanceof Number) {
+                int sum = rows.stream()
+                        .map(r -> r.get(col))
+                        .filter(Objects::nonNull)
+                        .mapToInt(v -> ((Number) v).intValue())
+                        .sum();
+                totalsRow.put(col, sum);
+            } else if ("MILESTONE_OWNER".equalsIgnoreCase(col)) {
+                totalsRow.put(col, "Total");
+            } else {
+                totalsRow.put(col, null);
+            }
+        }
+
+
+
+
+
+
+
+
+
 private int sum(List<MilestoneOwnerRBCMDeliverablesGridDto> rows,
                 ToIntFunction<MilestoneOwnerRBCMDeliverablesGridDto> getter) {
 
