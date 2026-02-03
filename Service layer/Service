@@ -1,3 +1,43 @@
+private int sum(List<MilestoneOwnerRBCMDeliverablesGridDto> rows,
+                ToIntFunction<MilestoneOwnerRBCMDeliverablesGridDto> getter) {
+
+    return rows.stream()
+            .map(getter)
+            .filter(Objects::nonNull)
+            .mapToInt(Integer::intValue)
+            .sum();
+}
+
+
+MilestoneOwnerRBCMDeliverablesGridDto totals =
+        new MilestoneOwnerRBCMDeliverablesGridDto();
+
+totals.setUseCaseOwner("Total");
+
+totals.setUseCaseCount(sum(rows, MilestoneOwnerRBCMDeliverablesGridDto::getUseCaseCount));
+totals.setRbcmRedCount(sum(rows, MilestoneOwnerRBCMDeliverablesGridDto::getRbcmRedCount));
+totals.setRbcmAmberCount(sum(rows, MilestoneOwnerRBCMDeliverablesGridDto::getRbcmAmberCount));
+totals.setRbcmGreenCount(sum(rows, MilestoneOwnerRBCMDeliverablesGridDto::getRbcmGreenCount));
+// repeat for remaining fields
+
+
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class GridResponseDto {
+
+    private List<String> columns;
+    private List<MilestoneOwnerRBCMDeliverablesGridDto> rows;
+    private List<MilestoneOwnerRBCMDeliverablesGridDto> totals;
+
+}
+
+
+
+
+
+
 @Service
 @Slf4j
 public class RbcmGridService {
