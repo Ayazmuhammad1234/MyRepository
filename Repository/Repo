@@ -1,0 +1,35 @@
+public List<Map<String, Object>> getMilestoneRBCMDeliverableGrid(
+        GlobalFilterRequestDto request) {
+
+    log.info("Repository: Fetching Milestone RBCM Deliverable Grid data with request: {}", request);
+
+    MapSqlParameterSource params = new MapSqlParameterSource();
+    StringBuilder sql = new StringBuilder(queryMilestoneOwnerRBCMDeliverablesGrid);
+
+    GlobalFilterSqlBuilder.applyGlobalFilters(sql, params, request);
+
+    sql.append(" GROUP BY MS.MILESTONE_OWNER ORDER BY MS.MILESTONE_OWNER ASC ");
+
+    try {
+        return jdbcTemplate.query(sql.toString(), params, rs -> {
+
+            List<Map<String, Object>> rows = new ArrayList<>();
+            ResultSetMetaData metaData = rs.getMetaData();
+            int columnCount = metaData.getColumnCount();
+
+            while (rs.next()) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                for (int i = 1; i <= columnCount; i++) {
+                    row.put(metaData.getColumnLabel(i), rs.getObject(i));
+                }
+                rows.add(row);
+            }
+
+            return rows;
+        });
+
+    } catch (Exception e) {
+        log.error("Error fetching Milestone RBCM Deliverable Grid data: {}", e.getMessage(), e);
+        return List.of();
+    }
+}
