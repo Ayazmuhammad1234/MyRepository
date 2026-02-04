@@ -1,3 +1,14 @@
+verify(jdbcTemplate).query(
+        contains("OFFSET"),
+        argThat((MapSqlParameterSource params) ->
+                params.getValue("offset").equals(20)
+                        && params.getValue("size").equals(25)
+        ),
+        any(RowMapper.class)
+);
+
+
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
