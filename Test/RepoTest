@@ -2,6 +2,103 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.jdbc.core.ResultSetExtractor;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+@ExtendWith(MockitoExtension.class)
+class MilestoneRepositoryTest {
+
+    @Mock
+    private NamedParameterJdbcTemplate jdbcTemplate;
+
+    @InjectMocks
+    private MilestoneRepository repository; // Replace with your actual repo class name
+
+    // ✅ Test 1: Success scenario
+    @Test
+    void getMilestonePopUpGrid_ReturnsData_WhenQuerySucceeds() throws Exception {
+        GlobalFilterRequestDto request = new GlobalFilterRequestDto();
+
+        List<Map<String, Object>> mockResponse = List.of(
+                Map.of("Column1", "Value1", "Column2", "Value2")
+        );
+
+        when(jdbcTemplate.query(
+                anyString(),
+                any(MapSqlParameterSource.class),
+                any(ResultSetExtractor.class)
+        )).thenReturn(mockResponse);
+
+        List<Map<String, Object>> result = repository.getMilestonePopUpGrid(request, 0, 10);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("Value1", result.get(0).get("Column1"));
+        assertEquals("Value2", result.get(0).get("Column2"));
+
+        verify(jdbcTemplate, times(1))
+                .query(anyString(), any(MapSqlParameterSource.class), any(ResultSetExtractor.class));
+    }
+
+    // ✅ Test 2: Exception scenario
+    @Test
+    void getMilestonePopUpGrid_ReturnsEmptyList_WhenExceptionOccurs() {
+        GlobalFilterRequestDto request = new GlobalFilterRequestDto();
+
+        when(jdbcTemplate.query(
+                anyString(),
+                any(MapSqlParameterSource.class),
+                any(ResultSetExtractor.class)
+        )).thenThrow(new RuntimeException("Database error"));
+
+        List<Map<String, Object>> result = repository.getMilestonePopUpGrid(request, 0, 10);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    // ✅ Test 3: Verify pagination parameters
+    @Test
+    void getMilestonePopUpGrid_VerifyPaginationParams() {
+        GlobalFilterRequestDto request = new GlobalFilterRequestDto();
+
+        when(jdbcTemplate.query(
+                anyString(),
+                any(MapSqlParameterSource.class),
+                any(ResultSetExtractor.class)
+        )).thenReturn(List.of());
+
+        repository.getMilestonePopUpGrid(request, 20, 25);
+
+        verify(jdbcTemplate).query(
+                contains("OFFSET"),
+                argThat((MapSqlParameterSource params) ->
+                        params.getValue("offset").equals(20) &&
+                        params.getValue("size").equals(25)
+                ),
+                any(ResultSetExtractor.class)
+        );
+    }
+}
+
+
+
+
+
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import java.sql.ResultSet;
 import java.util.List;
 import java.util.Map;
