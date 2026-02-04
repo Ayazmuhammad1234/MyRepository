@@ -1,0 +1,81 @@
+@PostMapping("/deliverablePopUpGrid")
+public ResponseEntity<RbcmDeliverableGridResponseDto> getDeliverablePopUpGridData(
+        @RequestBody FiltersRequestDto request,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "25") int size) {
+
+    log.info("Controller: Fetching Deliverable PopUp Grid | page={} size={}", page, size);
+
+    RbcmDeliverableGridResponseDto response =
+            service.getDeliverablePopUpGrid(request.getGlobalFilters(), page, size);
+
+    return ResponseEntity.ok(response);
+}
+
+
+public RbcmDeliverableGridResponseDto getDeliverablePopUpGrid(
+        GlobalFilterRequestDto request,
+        int page,
+        int size) {
+
+    log.info("Service: Fetching Deliverable PopUp Grid data | page={} size={}", page, size);
+
+    // Safety limit
+    size = Math.min(size, 100);
+
+    int offset = page * size;
+
+    List<Map<String, Object>> rows =
+            repository.getDeliverablePopUpGridData(request, offset, size);
+
+    if (rows == null || rows.isEmpty()) {
+        return new RbcmDeliverableGridResponseDto(
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList()
+        );
+    }
+
+    // Extract column names dynamically
+    List<String> columns = new ArrayList<>(rows.get(0).keySet());
+
+    return new RbcmDeliverableGridResponseDto(columns, rows, Collections.emptyList());
+}
+
+
+
+
+public List<Map<String, Object>> getDeliverablePopUpGridData(
+        GlobalFilterRequestDto request,
+        int offset,
+        int size) {
+
+    log.info("Repository: Fetching Deliverable PopUp Grid data with pagination");
+
+    MapSqlParameterSource params = new MapSqlParameterSource();
+
+    StringBuilder sql = new StringBuilder(queryDeliverablePopUpGrid1);
+
+    // Apply Filters
+    GlobalFilterSqlBuilder.applyGlobalFilters(sql, params, request);
+
+    sql.append(queryDeliverablePopUpGrid2);
+
+    // ⭐ Oracle Pagination
+    sql.append(" OFFSET :offset ROWS FETCH NEXT :size ROWS ONLY ");
+
+    params.addValue("offset", offset);
+    params.addValue("size", size);
+
+    try {
+
+        return jdbcTemplate.query(sql.toString(), params, GridMapper::mapResultSet);
+
+    } catch (Exception e) {
+        log.error("Error fetching Deliverable PopUp Grid data: {}", e.getMessage(), e);
+        return List.of();
+    }
+}
+
+
+
