@@ -2,6 +2,77 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+@ExtendWith(MockitoExtension.class)
+class DeliverableRepositoryTest {
+
+    @Mock
+    private NamedParameterJdbcTemplate jdbcTemplate;
+
+    @InjectMocks
+    private DeliverableRepository repository; // Replace with your repo class
+
+    // ✅ Test 1: Query returns data
+    @Test
+    void getAmberDeliverableDueNext3Month_ReturnsData_WhenQuerySucceeds() {
+        GlobalFilterRequestDto request = new GlobalFilterRequestDto();
+
+        // Mock response
+        List<Map<String, Object>> mockResponse = List.of(
+                Map.of("USE_CASE_OWNER", "Owner1", "COLUMN1", 10)
+        );
+
+        when(jdbcTemplate.queryForList(anyString(), any(MapSqlParameterSource.class)))
+                .thenReturn(mockResponse);
+
+        List<Map<String, Object>> result = repository.getAmberDeliverableDueNext3Month(request);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("Owner1", result.get(0).get("USE_CASE_OWNER"));
+
+        verify(jdbcTemplate, times(1))
+                .queryForList(anyString(), any(MapSqlParameterSource.class));
+    }
+
+    // ✅ Test 2: Query throws exception
+    @Test
+    void getAmberDeliverableDueNext3Month_ReturnsEmptyList_WhenExceptionOccurs() {
+        when(jdbcTemplate.queryForList(anyString(), any(MapSqlParameterSource.class)))
+                .thenThrow(new RuntimeException("DB error"));
+
+        List<Map<String, Object>> result = repository.getAmberDeliverableDueNext3Month(
+                new GlobalFilterRequestDto()
+        );
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+
+        verify(jdbcTemplate, times(1))
+                .queryForList(anyString(), any(MapSqlParameterSource.class));
+    }
+}
+
+
+
+
+
+
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
